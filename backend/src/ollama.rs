@@ -31,6 +31,7 @@ pub struct OllamaError {
     pub error: String,
 }
 
+#[derive(Clone)]
 pub struct OllamaClient {
     client: Client,
     base_url: String,

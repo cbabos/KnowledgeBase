@@ -1,10 +1,10 @@
 use anyhow::Result;
 use chrono::Utc;
-use database::{Database, Document, IndexEntry};
-use md5::{Digest, Md5};
+use crate::database::{Database, Document, IndexEntry};
+use md5;
 use regex::Regex;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use uuid::Uuid;
 use walkdir::WalkDir;
 
@@ -136,9 +136,8 @@ impl CorpusManager {
     }
 
     fn compute_hash(&self, content: &str) -> String {
-        let mut hasher = Md5::new();
-        hasher.update(content.as_bytes());
-        format!("{:x}", hasher.finalize())
+        let digest = md5::compute(content.as_bytes());
+        format!("{:x}", digest)
     }
 
     fn extract_metadata(&self, content: &str, path: &Path) -> (Option<String>, Vec<String>, Vec<String>) {
@@ -215,20 +214,27 @@ impl CorpusManager {
 
         while start < content.len() {
             let end = std::cmp::min(start + chunk_size, content.len());
-            let chunk_text = content[start..end].to_string();
+            
+            // Ensure we don't split in the middle of a UTF-8 character
+            let mut actual_end = end;
+            while actual_end > start && !content.is_char_boundary(actual_end) {
+                actual_end -= 1;
+            }
+            
+            let chunk_text = content[start..actual_end].to_string();
             
             // Find word boundaries for better chunking
-            let actual_end = if end < content.len() {
+            let final_end = if actual_end < content.len() {
                 if let Some(last_space) = chunk_text.rfind(' ') {
                     start + last_space
                 } else {
-                    end
+                    actual_end
                 }
             } else {
-                end
+                actual_end
             };
 
-            let chunk_text = content[start..actual_end].to_string();
+            let chunk_text = content[start..final_end].to_string();
             
             // Find positions of important terms (simple word-based indexing)
             let positions = self.find_word_positions(&chunk_text);
@@ -241,8 +247,8 @@ impl CorpusManager {
                 positions,
             });
 
-            start = if actual_end < content.len() {
-                actual_end.saturating_sub(overlap)
+            start = if final_end < content.len() {
+                final_end.saturating_sub(overlap)
             } else {
                 break;
             };
@@ -266,7 +272,7 @@ impl CorpusManager {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct IndexingResult {
     pub files_processed: u32,
     pub files_skipped: u32,

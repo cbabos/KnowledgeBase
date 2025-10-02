@@ -1,8 +1,8 @@
 use anyhow::Result;
-use config::Config;
-use database::Database;
-use mcp::MCPServer;
-use ollama::OllamaClient;
+use crate::config::Config;
+use crate::database::Database;
+use crate::mcp::MCPServer;
+use crate::ollama::OllamaClient;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::path::PathBuf;
@@ -17,7 +17,7 @@ pub struct IndexRequest {
 pub struct IndexResponse {
     pub success: bool,
     pub message: String,
-    pub result: Option<corpus::IndexingResult>,
+    pub result: Option<crate::corpus::IndexingResult>,
 }
 
 pub async fn start_server(config: Config, db: Database) -> Result<()> {
@@ -58,12 +58,12 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                         .and(warp::body::json())
                         .and_then({
                             let mcp_server = mcp_server.clone();
-                            move |request: mcp::MCPRequest| {
+                            move |request: crate::mcp::MCPRequest| {
                                 let mcp_server = mcp_server.clone();
                                 async move {
                                     match mcp_server.handle_request(request).await {
                                         Ok(response) => Ok::<_, Infallible>(warp::reply::json(&response)),
-                                        Err(e) => Ok(warp::reply::json(&mcp::MCPResponse {
+                                        Err(e) => Ok(warp::reply::json(&crate::mcp::MCPResponse {
                                             success: false,
                                             data: None,
                                             error: Some(e.to_string()),
@@ -73,51 +73,72 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                             }
                         })
                 )
-        )
-        .or(
-            // Index management endpoints
-            warp::path("index")
-                .and(
-                    warp::post()
-                        .and(warp::body::json())
-                        .and_then({
-                            let db = db.clone();
-                            move |request: IndexRequest| {
-                                let db = db.clone();
-                                async move {
-                                    match index_folders(db, request.folders).await {
-                                        Ok(result) => Ok::<_, Infallible>(warp::reply::json(&IndexResponse {
-                                            success: true,
-                                            message: "Indexing completed".to_string(),
-                                            result: Some(result),
-                                        })),
-                                        Err(e) => Ok(warp::reply::json(&IndexResponse {
-                                            success: false,
-                                            message: e.to_string(),
-                                            result: None,
-                                        })),
+                .or(
+                    // Index management endpoints
+                    warp::path("index")
+                        .and(
+                            warp::post()
+                                .and(warp::body::json())
+                                .and_then({
+                                    let db = db.clone();
+                                    move |request: IndexRequest| {
+                                        let db = db.clone();
+                                        async move {
+                                            match index_folders(db, request.folders).await {
+                                                Ok(result) => Ok::<_, Infallible>(warp::reply::json(&IndexResponse {
+                                                    success: true,
+                                                    message: "Indexing completed".to_string(),
+                                                    result: Some(result),
+                                                })),
+                                                Err(e) => Ok(warp::reply::json(&IndexResponse {
+                                                    success: false,
+                                                    message: e.to_string(),
+                                                    result: None,
+                                                })),
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                        })
+                                })
+                        )
                 )
-        )
-        .or(
-            // Health check
-            warp::path("health")
-                .and(warp::get())
-                .map(|| warp::reply::json(&serde_json::json!({
-                    "status": "healthy",
-                    "timestamp": chrono::Utc::now()
-                })))
+                .or(
+                    // Health check
+                    warp::path("health")
+                        .and(warp::get())
+                        .map(|| warp::reply::json(&serde_json::json!({
+                            "status": "healthy",
+                            "timestamp": chrono::Utc::now()
+                        })))
+                )
         );
 
-    // Serve static files (React app)
+    // Serve static files from build directory (only for specific paths)
     let static_files = warp::path("static")
-        .and(warp::fs::dir("./frontend/build"));
+        .and(warp::fs::dir("../build/static"))
+        .or(warp::path("manifest.json")
+            .and(warp::fs::file("../build/manifest.json")))
+        .or(warp::path("asset-manifest.json")
+            .and(warp::fs::file("../build/asset-manifest.json")))
+        .or(warp::path("favicon.ico")
+            .and(warp::fs::file("../build/favicon.ico")))
+        .or(warp::path("logo192.png")
+            .and(warp::fs::file("../build/logo192.png")));
 
-    // Serve React app for all other routes
-    let react_app = warp::fs::file("./frontend/build/index.html");
+    // Serve React app for all other routes (fallback)
+    let react_app = warp::any()
+        .and(warp::path::full())
+        .and_then(|path: warp::path::FullPath| async move {
+            // Only serve index.html for non-API, non-static file requests
+            if !path.as_str().starts_with("/api") && 
+               !path.as_str().starts_with("/static") &&
+               !path.as_str().contains(".") {
+                Ok::<_, Infallible>(warp::reply::html(
+                    std::fs::read_to_string("../build/index.html").unwrap_or_default()
+                ))
+            } else {
+                Ok::<_, Infallible>(warp::reply::html("Not Found".to_string()))
+            }
+        });
 
     let routes = api_routes
         .or(static_files)
@@ -134,8 +155,8 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
     Ok(())
 }
 
-async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<corpus::IndexingResult> {
-    let mut total_result = corpus::IndexingResult {
+async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<crate::corpus::IndexingResult> {
+    let mut total_result = crate::corpus::IndexingResult {
         files_processed: 0,
         files_skipped: 0,
         files_failed: 0,
@@ -150,7 +171,7 @@ async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<corpus::In
         "*.log".to_string(),
     ];
 
-    let corpus_manager = corpus::CorpusManager::new(db, exclusions);
+    let corpus_manager = crate::corpus::CorpusManager::new(db, exclusions);
 
     for folder in folders {
         if !folder.exists() {

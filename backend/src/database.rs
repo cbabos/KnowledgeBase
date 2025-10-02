@@ -30,6 +30,7 @@ pub struct IndexEntry {
     pub positions: Vec<u32>,
 }
 
+#[derive(Clone)]
 pub struct Database {
     pool: SqlitePool,
 }
@@ -153,13 +154,15 @@ impl Database {
     ) -> Result<Vec<Document>> {
         let documents = sqlx::query(
             r#"
-            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at
-            FROM documents
-            WHERE filename LIKE ? OR content_excerpt LIKE ? OR title LIKE ?
-            ORDER BY modified_at DESC
+            SELECT DISTINCT d.id, d.path, d.filename, d.extension, d.size, d.modified_at, d.title, d.tags, d.headings, d.content_excerpt, d.content_hash, d.indexed_at
+            FROM documents d
+            LEFT JOIN index_entries ie ON d.id = ie.document_id
+            WHERE d.filename LIKE ? OR d.content_excerpt LIKE ? OR d.title LIKE ? OR ie.chunk_text LIKE ?
+            ORDER BY d.modified_at DESC
             LIMIT ? OFFSET ?
             "#,
         )
+        .bind(format!("%{}%", query))
         .bind(format!("%{}%", query))
         .bind(format!("%{}%", query))
         .bind(format!("%{}%", query))

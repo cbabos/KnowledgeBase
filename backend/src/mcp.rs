@@ -1,9 +1,8 @@
 use anyhow::Result;
-use database::Database;
-use ollama::{OllamaClient, SummaryLength};
-use search::SearchEngine;
+use crate::database::Database;
+use crate::ollama::{OllamaClient, SummaryLength};
+use crate::search::SearchEngine;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,6 +25,7 @@ pub struct MCPResponse {
     pub error: Option<String>,
 }
 
+#[derive(Clone)]
 pub struct MCPServer {
     db: Database,
     search_engine: SearchEngine,
@@ -313,7 +313,7 @@ impl MCPServer {
     }
 }
 
-fn parse_search_filters(filters_value: &serde_json::Value) -> Result<search::SearchFilters> {
+fn parse_search_filters(filters_value: &serde_json::Value) -> Result<crate::search::SearchFilters> {
     let file_types = filters_value.get("file_types")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect());
@@ -326,7 +326,7 @@ fn parse_search_filters(filters_value: &serde_json::Value) -> Result<search::Sea
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect());
 
-    Ok(search::SearchFilters {
+    Ok(crate::search::SearchFilters {
         file_types,
         folders,
         date_from: None,

@@ -17,8 +17,10 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
+        // Use a more reliable database path
+        let db_path = Self::default_database_path().unwrap_or_else(|_| "./knowledge_base.db".to_string());
         Self {
-            database_url: "sqlite:./knowledge_base.db".to_string(),
+            database_url: format!("sqlite:{}", db_path),
             server_port: 8080,
             ollama_url: "http://localhost:11434".to_string(),
             ollama_model: "gpt-oss:20b".to_string(),
@@ -66,5 +68,14 @@ impl Config {
         std::fs::create_dir_all(&path)?;
         path.push("config.toml");
         Ok(path)
+    }
+
+    fn default_database_path() -> Result<String> {
+        let mut path = dirs::data_dir()
+            .ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?;
+        path.push("knowledge-base");
+        std::fs::create_dir_all(&path)?;
+        path.push("knowledge_base.db");
+        Ok(path.to_string_lossy().to_string())
     }
 }

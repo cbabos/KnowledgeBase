@@ -1,17 +1,15 @@
 use anyhow::Result;
-use database::{Database, Document, IndexEntry};
+use crate::database::{Database, Document, IndexEntry};
 use regex::Regex;
-use std::collections::HashMap;
-use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SearchResult {
     pub document: Document,
     pub score: f32,
     pub snippets: Vec<Snippet>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Snippet {
     pub text: String,
     pub start_pos: usize,
@@ -19,7 +17,7 @@ pub struct Snippet {
     pub highlighted: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SearchFilters {
     pub file_types: Option<Vec<String>>,
     pub folders: Option<Vec<String>>,
@@ -28,6 +26,7 @@ pub struct SearchFilters {
     pub tags: Option<Vec<String>>,
 }
 
+#[derive(Clone)]
 pub struct SearchEngine {
     db: Database,
 }
@@ -253,13 +252,24 @@ impl SearchEngine {
             let snippet_start = start.saturating_sub(100);
             let snippet_end = std::cmp::min(end + 100, content.len());
             
-            let snippet_text = content[snippet_start..snippet_end].to_string();
+            // Ensure we don't split in the middle of a UTF-8 character
+            let mut actual_start = snippet_start;
+            while actual_start < content.len() && !content.is_char_boundary(actual_start) {
+                actual_start += 1;
+            }
+            
+            let mut actual_end = snippet_end;
+            while actual_end > actual_start && !content.is_char_boundary(actual_end) {
+                actual_end -= 1;
+            }
+            
+            let snippet_text = content[actual_start..actual_end].to_string();
             let highlighted = self.highlight_matches(&snippet_text, query);
 
             snippets.push(Snippet {
                 text: snippet_text,
-                start_pos: snippet_start,
-                end_pos: snippet_end,
+                start_pos: actual_start,
+                end_pos: actual_end,
                 highlighted,
             });
 
@@ -295,26 +305,79 @@ impl SearchEngine {
         question: &str,
         top_k: u32,
     ) -> Result<Vec<(Document, IndexEntry)>> {
-        // Simple implementation: search for question terms and return top chunks
-        let search_results = self.search(question, None, top_k, 0).await?;
+        // Extract keywords from the question (remove common words and punctuation)
+        let keywords = self.extract_keywords_from_question(question);
         
-        let mut chunks = Vec::new();
-        for result in search_results {
-            let index_entries = self.db.get_index_entries_for_document(&result.document.id).await?;
-            for entry in index_entries {
-                chunks.push((result.document.clone(), entry));
+        if keywords.is_empty() {
+            return Ok(Vec::new());
+        }
+        
+        // Search for each keyword and collect results
+        let mut all_chunks = Vec::new();
+        for keyword in keywords {
+            let search_results = self.search(&keyword, None, top_k * 2, 0).await?;
+            
+            for result in search_results {
+                let index_entries = self.db.get_index_entries_for_document(&result.document.id).await?;
+                for entry in index_entries {
+                    all_chunks.push((result.document.clone(), entry));
+                }
             }
         }
 
-        // Sort by relevance (simple scoring based on question term matches)
-        chunks.sort_by(|a, b| {
+        // Remove duplicates and sort by relevance
+        all_chunks.sort_by(|a, b| {
             let score_a = self.calculate_chunk_relevance(&a.1.chunk_text, question);
             let score_b = self.calculate_chunk_relevance(&b.1.chunk_text, question);
             score_b.partial_cmp(&score_a).unwrap()
         });
 
-        chunks.truncate(top_k as usize);
-        Ok(chunks)
+        // Remove duplicates based on document ID and chunk ID
+        let mut unique_chunks = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        
+        for (doc, entry) in all_chunks {
+            let key = (doc.id, entry.chunk_id);
+            if !seen.contains(&key) {
+                seen.insert(key);
+                unique_chunks.push((doc, entry));
+            }
+        }
+
+        unique_chunks.truncate(top_k as usize);
+        Ok(unique_chunks)
+    }
+
+    fn extract_keywords_from_question(&self, question: &str) -> Vec<String> {
+        // Common stop words to filter out
+        let stop_words = [
+            "what", "do", "does", "did", "is", "are", "was", "were", "be", "been", "being",
+            "have", "has", "had", "having", "will", "would", "could", "should", "can", "may",
+            "might", "must", "shall", "the", "a", "an", "and", "or", "but", "in", "on", "at",
+            "to", "for", "of", "with", "by", "from", "up", "about", "into", "through", "during",
+            "before", "after", "above", "below", "between", "among", "this", "that", "these",
+            "those", "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us",
+            "them", "my", "your", "his", "her", "its", "our", "their", "mine", "yours", "hers",
+            "ours", "theirs", "who", "whom", "whose", "which", "where", "when", "why", "how",
+            "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no",
+            "nor", "not", "only", "own", "same", "so", "than", "too", "very", "just", "now"
+        ];
+        
+        let stop_words_set: std::collections::HashSet<&str> = stop_words.iter().cloned().collect();
+        
+        question
+            .to_lowercase()
+            .split_whitespace()
+            .filter_map(|word| {
+                // Remove punctuation
+                let clean_word = word.trim_matches(|c: char| !c.is_alphanumeric());
+                if clean_word.len() > 2 && !stop_words_set.contains(clean_word) {
+                    Some(clean_word.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     fn calculate_chunk_relevance(&self, chunk_text: &str, question: &str) -> f32 {
