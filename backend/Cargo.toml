@@ -1,0 +1,37 @@
+[package]
+name = "knowledge-base-backend"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+walkdir.workspace = true
+regex.workspace = true
+md5.workspace = true
+pdf-extract.workspace = true
+reqwest.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Web server
+warp = "0.3"
+tower = "0.4"
+tower-http = { version = "0.4", features = ["cors", "fs"] }
+
+# MCP protocol - using a simple implementation for now
+# mcp = "0.1"
+
+# Additional dependencies
+base64 = "0.21"
+url = "2.0"
+toml = "0.8"
+dirs = "5.0"
