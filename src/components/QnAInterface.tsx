@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { MessageSquare, Send, FileText, ExternalLink, AlertCircle } from 'lucide-react';
+import { MessageSquare, Send, FileText, ExternalLink, AlertCircle, Search } from 'lucide-react';
 import { MCPTool, QAAnswer, Citation } from '../types';
 
 interface QnAInterfaceProps {
   tools: MCPTool[];
+  onSwitchToSearch?: () => void;
 }
 
-const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools }) => {
+const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) => {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<QAAnswer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,6 +82,18 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools }) => {
     <div className="space-y-6">
       {/* Question Input */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Ask a Question</h2>
+          {onSwitchToSearch && (
+            <button
+              onClick={onSwitchToSearch}
+              className="flex items-center px-3 py-2 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Switch to Search
+            </button>
+          )}
+        </div>
         <div className="flex items-center space-x-4">
           <div className="flex-1">
             <div className="relative">
@@ -191,6 +204,34 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools }) => {
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               Chunk {citation.chunk_id}
                             </span>
+                          </div>
+                          
+                          {/* Version Information */}
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Version:</span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              citation.is_latest 
+                                ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20' 
+                                : 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20'
+                            }`}>
+                              v{citation.used_version}
+                            </span>
+                            {!citation.is_latest && (
+                              <>
+                                <span className="text-xs text-gray-400">→</span>
+                                <span className="px-2 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-700">
+                                  Latest: v{citation.latest_version}
+                                </span>
+                                <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                  (Outdated)
+                                </span>
+                              </>
+                            )}
+                            {citation.is_latest && (
+                              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                (Latest)
+                              </span>
+                            )}
                           </div>
                           
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">

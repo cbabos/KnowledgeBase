@@ -67,7 +67,7 @@ impl CorpusManager {
         let content_hash = self.compute_hash(&content);
 
         // Check if file has changed
-        if let Some(existing_doc) = self.db.get_document_by_path(&path.to_path_buf()).await? {
+        if let Some(existing_doc) = self.db.get_latest_document_version(&path.to_path_buf()).await? {
             if existing_doc.content_hash == content_hash {
                 return Ok(()); // File hasn't changed
             }
@@ -76,6 +76,10 @@ impl CorpusManager {
         // Extract metadata
         let (title, tags, headings) = self.extract_metadata(&content, path);
         let content_excerpt = self.create_excerpt(&content);
+
+        // Get next version number and mark previous versions as not latest
+        let version = self.db.get_next_version_number(&path.to_path_buf()).await?;
+        self.db.mark_previous_versions_not_latest(&path.to_path_buf()).await?;
 
         // Create document
         let document = Document {
@@ -94,6 +98,8 @@ impl CorpusManager {
             content_excerpt,
             content_hash,
             indexed_at: Utc::now(),
+            version,
+            is_latest: true,
         };
 
         // Insert document
@@ -226,7 +232,13 @@ impl CorpusManager {
             // Find word boundaries for better chunking
             let final_end = if actual_end < content.len() {
                 if let Some(last_space) = chunk_text.rfind(' ') {
-                    start + last_space
+                    let proposed_end = start + last_space;
+                    // Ensure we don't split in the middle of a UTF-8 character
+                    if content.is_char_boundary(proposed_end) {
+                        proposed_end
+                    } else {
+                        actual_end
+                    }
                 } else {
                     actual_end
                 }
@@ -234,7 +246,11 @@ impl CorpusManager {
                 actual_end
             };
 
-            let chunk_text = content[start..final_end].to_string();
+            let chunk_text = if final_end <= content.len() && content.is_char_boundary(final_end) {
+                content[start..final_end].to_string()
+            } else {
+                content[start..actual_end].to_string()
+            };
             
             // Find positions of important terms (simple word-based indexing)
             let positions = self.find_word_positions(&chunk_text);

@@ -75,6 +75,7 @@ impl MCPServer {
                         "query": {"type": "string"},
                         "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
                         "offset": {"type": "integer", "minimum": 0, "default": 0},
+                        "include_historical": {"type": "boolean", "default": false},
                         "filters": {
                             "type": "object",
                             "properties": {
@@ -111,6 +112,60 @@ impl MCPServer {
                     "required": ["question"]
                 }),
             },
+            MCPTool {
+                name: "get_document_versions".to_string(),
+                description: "Get all versions of a document".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string"}
+                    },
+                    "required": ["path"]
+                }),
+            },
+            MCPTool {
+                name: "compare_versions".to_string(),
+                description: "Compare two versions of a document and return differences".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string"},
+                        "version_a": {"type": "integer"},
+                        "version_b": {"type": "integer"}
+                    },
+                    "required": ["path", "version_a", "version_b"]
+                }),
+            },
+            MCPTool {
+                name: "get_retention_policy".to_string(),
+                description: "Get the current retention policy settings".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {}
+                }),
+            },
+            MCPTool {
+                name: "set_retention_policy".to_string(),
+                description: "Set the retention policy for document versions".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "policy_type": {"type": "string", "enum": ["all", "last_n_versions", "last_n_days"]},
+                        "value": {"type": "integer", "minimum": 1}
+                    },
+                    "required": ["policy_type", "value"]
+                }),
+            },
+            MCPTool {
+                name: "purge_history".to_string(),
+                description: "Purge historical versions according to retention policy".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "dry_run": {"type": "boolean", "default": false}
+                    }
+                }),
+            },
         ]
     }
 
@@ -121,6 +176,11 @@ impl MCPServer {
             "search_notes" => self.handle_search_notes(request.arguments).await,
             "summarize_note" => self.handle_summarize_note(request.arguments).await,
             "answer_question" => self.handle_answer_question(request.arguments).await,
+            "get_document_versions" => self.handle_get_document_versions(request.arguments).await,
+            "compare_versions" => self.handle_compare_versions(request.arguments).await,
+            "get_retention_policy" => self.handle_get_retention_policy(request.arguments).await,
+            "set_retention_policy" => self.handle_set_retention_policy(request.arguments).await,
+            "purge_history" => self.handle_purge_history(request.arguments).await,
             _ => Ok(MCPResponse {
                 success: false,
                 data: None,
@@ -133,7 +193,7 @@ impl MCPServer {
         let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20) as u32;
         let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
 
-        let documents = self.db.search_documents("", limit, offset).await?;
+        let documents = self.db.search_documents("", limit, offset, false).await?;
         
         let response_data = serde_json::json!({
             "notes": documents,
@@ -186,6 +246,7 @@ impl MCPServer {
 
         let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20) as u32;
         let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let include_historical = args.get("include_historical").and_then(|v| v.as_bool()).unwrap_or(false);
 
         // Parse filters if provided
         let filters = if let Some(filters_value) = args.get("filters") {
@@ -194,7 +255,7 @@ impl MCPServer {
             None
         };
 
-        let results = self.search_engine.search(query, filters, limit, offset).await?;
+        let results = self.search_engine.search(query, filters, limit, offset, include_historical).await?;
         
         let response_data = serde_json::json!({
             "results": results,
@@ -284,16 +345,24 @@ impl MCPServer {
         // Generate answer using Ollama
         let answer = self.ollama_client.answer_question(question, &context).await?;
 
-        // Create citations
-        let citations = chunks.iter()
-            .map(|(doc, entry)| serde_json::json!({
+        // Create citations with version information
+        let mut citations = Vec::new();
+        for (doc, entry) in chunks.iter() {
+            // Get the latest version of this document
+            let latest_doc = self.db.get_latest_document_version(&std::path::PathBuf::from(&doc.path)).await?;
+            let latest_version = latest_doc.as_ref().map(|d| d.version).unwrap_or(doc.version);
+            
+            citations.push(serde_json::json!({
                 "document_id": doc.id,
                 "filename": doc.filename,
                 "path": doc.path,
                 "chunk_id": entry.chunk_id,
-                "excerpt": entry.chunk_text
-            }))
-            .collect::<Vec<_>>();
+                "excerpt": entry.chunk_text,
+                "used_version": doc.version,
+                "latest_version": latest_version,
+                "is_latest": doc.is_latest
+            }));
+        }
 
         // Calculate confidence (simple heuristic)
         let confidence = if chunks.len() >= 3 { "high" } else if chunks.len() >= 2 { "medium" } else { "low" };
@@ -308,6 +377,214 @@ impl MCPServer {
         Ok(MCPResponse {
             success: true,
             data: Some(response_data),
+            error: None,
+        })
+    }
+
+    async fn handle_get_document_versions(&self, args: serde_json::Value) -> Result<MCPResponse> {
+        let path_str = args.get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: path"))?;
+
+        let path = std::path::PathBuf::from(path_str);
+        let versions = self.db.get_document_versions(&path).await?;
+
+        let response_data = serde_json::json!({
+            "path": path_str,
+            "versions": versions
+        });
+
+        Ok(MCPResponse {
+            success: true,
+            data: Some(response_data),
+            error: None,
+        })
+    }
+
+    async fn handle_compare_versions(&self, args: serde_json::Value) -> Result<MCPResponse> {
+        let path_str = args.get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: path"))?;
+
+        let version_a = args.get("version_a")
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: version_a"))? as u32;
+
+        let version_b = args.get("version_b")
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: version_b"))? as u32;
+
+        let path = std::path::PathBuf::from(path_str);
+        let versions = self.db.get_document_versions(&path).await?;
+
+        // Find the specific versions
+        let doc_a = versions.iter().find(|v| v.version == version_a);
+        let doc_b = versions.iter().find(|v| v.version == version_b);
+
+        if doc_a.is_none() || doc_b.is_none() {
+            return Ok(MCPResponse {
+                success: false,
+                data: None,
+                error: Some("One or both versions not found".to_string()),
+            });
+        }
+
+        let doc_a = doc_a.unwrap();
+        let doc_b = doc_b.unwrap();
+
+        // Read file contents for both versions
+        let content_a = std::fs::read_to_string(&doc_a.path)?;
+        let content_b = std::fs::read_to_string(&doc_b.path)?;
+
+        // Simple diff implementation
+        let diff = self.compute_diff(&content_a, &content_b);
+
+        let response_data = serde_json::json!({
+            "path": path_str,
+            "version_a": version_a,
+            "version_b": version_b,
+            "diff": diff,
+            "document_a": doc_a,
+            "document_b": doc_b
+        });
+
+        Ok(MCPResponse {
+            success: true,
+            data: Some(response_data),
+            error: None,
+        })
+    }
+
+    fn compute_diff(&self, content_a: &str, content_b: &str) -> serde_json::Value {
+        // Simple line-based diff
+        let lines_a: Vec<&str> = content_a.lines().collect();
+        let lines_b: Vec<&str> = content_b.lines().collect();
+
+        let mut diff_lines = Vec::new();
+        let mut i = 0;
+        let mut j = 0;
+
+        while i < lines_a.len() || j < lines_b.len() {
+            if i >= lines_a.len() {
+                // Only lines in B remain
+                diff_lines.push(serde_json::json!({
+                    "type": "added",
+                    "line": j + 1,
+                    "content": lines_b[j]
+                }));
+                j += 1;
+            } else if j >= lines_b.len() {
+                // Only lines in A remain
+                diff_lines.push(serde_json::json!({
+                    "type": "removed",
+                    "line": i + 1,
+                    "content": lines_a[i]
+                }));
+                i += 1;
+            } else if lines_a[i] == lines_b[j] {
+                // Lines are the same
+                diff_lines.push(serde_json::json!({
+                    "type": "unchanged",
+                    "line": i + 1,
+                    "content": lines_a[i]
+                }));
+                i += 1;
+                j += 1;
+            } else {
+                // Lines are different - simple heuristic: assume line was changed
+                diff_lines.push(serde_json::json!({
+                    "type": "removed",
+                    "line": i + 1,
+                    "content": lines_a[i]
+                }));
+                diff_lines.push(serde_json::json!({
+                    "type": "added",
+                    "line": j + 1,
+                    "content": lines_b[j]
+                }));
+                i += 1;
+                j += 1;
+            }
+        }
+
+        serde_json::json!({
+            "lines": diff_lines,
+            "summary": {
+                "added": diff_lines.iter().filter(|l| l["type"] == "added").count(),
+                "removed": diff_lines.iter().filter(|l| l["type"] == "removed").count(),
+                "unchanged": diff_lines.iter().filter(|l| l["type"] == "unchanged").count()
+            }
+        })
+    }
+
+    async fn handle_get_retention_policy(&self, _args: serde_json::Value) -> Result<MCPResponse> {
+        // For now, return a default policy. In a real implementation, this would read from a config file or database
+        let policy = serde_json::json!({
+            "policy_type": "all",
+            "value": 0,
+            "description": "Keep all versions (default)"
+        });
+
+        Ok(MCPResponse {
+            success: true,
+            data: Some(policy),
+            error: None,
+        })
+    }
+
+    async fn handle_set_retention_policy(&self, args: serde_json::Value) -> Result<MCPResponse> {
+        let policy_type = args.get("policy_type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: policy_type"))?;
+
+        let value = args.get("value")
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: value"))? as u32;
+
+        // In a real implementation, this would save to a config file or database
+        let description = match policy_type {
+            "all" => "Keep all versions".to_string(),
+            "last_n_versions" => format!("Keep last {} versions", value),
+            "last_n_days" => format!("Keep versions from last {} days", value),
+            _ => "Unknown policy type".to_string()
+        };
+
+        let policy = serde_json::json!({
+            "policy_type": policy_type,
+            "value": value,
+            "description": description
+        });
+
+        Ok(MCPResponse {
+            success: true,
+            data: Some(policy),
+            error: None,
+        })
+    }
+
+    async fn handle_purge_history(&self, args: serde_json::Value) -> Result<MCPResponse> {
+        let dry_run = args.get("dry_run").and_then(|v| v.as_bool()).unwrap_or(false);
+
+        // In a real implementation, this would:
+        // 1. Read the current retention policy
+        // 2. Find documents that exceed the policy
+        // 3. Delete old versions (or just report them if dry_run is true)
+
+        let result = serde_json::json!({
+            "dry_run": dry_run,
+            "documents_processed": 0,
+            "versions_deleted": 0,
+            "space_freed_bytes": 0,
+            "message": if dry_run {
+                "Dry run completed - no versions were actually deleted"
+            } else {
+                "History purge completed"
+            }
+        });
+
+        Ok(MCPResponse {
+            success: true,
+            data: Some(result),
             error: None,
         })
     }

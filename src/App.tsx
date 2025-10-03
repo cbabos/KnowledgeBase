@@ -9,7 +9,7 @@ import { MCPTool } from './types';
 type Tab = 'search' | 'qa' | 'settings' | 'indexing';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('search');
+  const [activeTab, setActiveTab] = useState<Tab>('qa');
   const [tools, setTools] = useState<MCPTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -32,8 +32,8 @@ function App() {
   };
 
   const tabs = [
-    { id: 'search' as Tab, label: 'Search', icon: Search },
     { id: 'qa' as Tab, label: 'Q&A', icon: MessageSquare },
+    { id: 'search' as Tab, label: 'Search', icon: Search },
     { id: 'indexing' as Tab, label: 'Index', icon: Database },
     { id: 'settings' as Tab, label: 'Settings', icon: Settings },
   ];
@@ -89,8 +89,8 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="fade-in">
+          {activeTab === 'qa' && <QnAInterface tools={tools} onSwitchToSearch={() => setActiveTab('search')} />}
           {activeTab === 'search' && <SearchInterface tools={tools} />}
-          {activeTab === 'qa' && <QnAInterface tools={tools} />}
           {activeTab === 'indexing' && <IndexingInterface />}
           {activeTab === 'settings' && <SettingsInterface />}
         </div>

@@ -42,12 +42,13 @@ impl SearchEngine {
         filters: Option<SearchFilters>,
         limit: u32,
         offset: u32,
+        include_historical: bool,
     ) -> Result<Vec<SearchResult>> {
         // Parse query for AND/OR operations and quoted phrases
         let parsed_query = self.parse_query(query);
         
         // Get all documents that match the basic text search
-        let documents = self.db.search_documents(query, 1000, 0).await?;
+        let documents = self.db.search_documents(query, 1000, 0, include_historical).await?;
         
         // Apply filters
         let filtered_documents = if let Some(filters) = filters {
@@ -236,7 +237,7 @@ impl SearchEngine {
         match_positions.sort_by_key(|(start, _)| *start);
         let mut merged_positions = Vec::new();
         for (start, end) in match_positions {
-            if let Some((last_start, last_end)) = merged_positions.last_mut() {
+            if let Some((_last_start, last_end)) = merged_positions.last_mut() {
                 if start <= *last_end + 50 { // Merge if within 50 characters
                     *last_end = end;
                 } else {
@@ -315,7 +316,7 @@ impl SearchEngine {
         // Search for each keyword and collect results
         let mut all_chunks = Vec::new();
         for keyword in keywords {
-            let search_results = self.search(&keyword, None, top_k * 2, 0).await?;
+            let search_results = self.search(&keyword, None, top_k * 2, 0, false).await?;
             
             for result in search_results {
                 let index_entries = self.db.get_index_entries_for_document(&result.document.id).await?;

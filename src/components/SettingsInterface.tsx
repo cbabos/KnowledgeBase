@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Database, Shield, Eye, EyeOff, Download, Upload } from 'lucide-react';
+import { Settings, Database, Shield, Eye, EyeOff, Download, Upload, Clock, Trash2 } from 'lucide-react';
 
 const SettingsInterface: React.FC = () => {
   const [settings, setSettings] = useState({
@@ -11,14 +11,119 @@ const SettingsInterface: React.FC = () => {
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [retentionPolicy, setRetentionPolicy] = useState({
+    policy_type: 'all',
+    value: 0,
+    description: 'Keep all versions (default)'
+  });
+  const [isLoadingPolicy, setIsLoadingPolicy] = useState(false);
 
   useEffect(() => {
     // Load settings from localStorage or API
     const savedSettings = localStorage.getItem('knowledge-base-settings');
     if (savedSettings) {
-      setSettings({ ...settings, ...JSON.parse(savedSettings) });
+      setSettings(prevSettings => ({ ...prevSettings, ...JSON.parse(savedSettings) }));
     }
+    loadRetentionPolicy();
   }, []);
+
+  const loadRetentionPolicy = async () => {
+    setIsLoadingPolicy(true);
+    try {
+      const request = {
+        tool: 'get_retention_policy',
+        arguments: {},
+      };
+
+      const response = await fetch('/api/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setRetentionPolicy(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load retention policy:', error);
+    } finally {
+      setIsLoadingPolicy(false);
+    }
+  };
+
+  const saveRetentionPolicy = async () => {
+    setIsLoadingPolicy(true);
+    try {
+      const request = {
+        tool: 'set_retention_policy',
+        arguments: {
+          policy_type: retentionPolicy.policy_type,
+          value: retentionPolicy.value,
+        },
+      };
+
+      const response = await fetch('/api/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setRetentionPolicy(data.data);
+        alert('Retention policy saved successfully!');
+      } else {
+        alert('Failed to save retention policy: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Failed to save retention policy:', error);
+      alert('Failed to save retention policy');
+    } finally {
+      setIsLoadingPolicy(false);
+    }
+  };
+
+  const purgeHistory = async (dryRun = true) => {
+    setIsLoadingPolicy(true);
+    try {
+      const request = {
+        tool: 'purge_history',
+        arguments: {
+          dry_run: dryRun,
+        },
+      };
+
+      const response = await fetch('/api/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        const result = data.data;
+        if (dryRun) {
+          alert(`Dry run completed. Would delete ${result.versions_deleted} versions and free ${result.space_freed_bytes} bytes.`);
+        } else {
+          alert(`History purge completed. Deleted ${result.versions_deleted} versions and freed ${result.space_freed_bytes} bytes.`);
+        }
+      } else {
+        alert('Failed to purge history: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Failed to purge history:', error);
+      alert('Failed to purge history');
+    } finally {
+      setIsLoadingPolicy(false);
+    }
+  };
 
   const saveSettings = () => {
     localStorage.setItem('knowledge-base-settings', JSON.stringify(settings));
@@ -203,6 +308,85 @@ const SettingsInterface: React.FC = () => {
               </select>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Version History Retention */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center mb-4">
+          <Clock className="h-5 w-5 text-primary-500 mr-2" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Version History Retention
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Retention Policy
+            </label>
+            <select
+              value={retentionPolicy.policy_type}
+              onChange={(e) => setRetentionPolicy({ ...retentionPolicy, policy_type: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              <option value="all">Keep all versions</option>
+              <option value="last_n_versions">Keep last N versions</option>
+              <option value="last_n_days">Keep versions from last N days</option>
+            </select>
+          </div>
+
+          {(retentionPolicy.policy_type === 'last_n_versions' || retentionPolicy.policy_type === 'last_n_days') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {retentionPolicy.policy_type === 'last_n_versions' ? 'Number of Versions' : 'Number of Days'}
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={retentionPolicy.value}
+                onChange={(e) => setRetentionPolicy({ ...retentionPolicy, value: parseInt(e.target.value) || 1 })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          )}
+
+          <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              <strong>Current Policy:</strong> {retentionPolicy.description}
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={saveRetentionPolicy}
+              disabled={isLoadingPolicy}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoadingPolicy ? 'Saving...' : 'Save Policy'}
+            </button>
+            
+            <button
+              onClick={() => purgeHistory(true)}
+              disabled={isLoadingPolicy}
+              className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoadingPolicy ? 'Checking...' : 'Preview Purge'}
+            </button>
+            
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to purge historical versions? This action cannot be undone.')) {
+                  purgeHistory(false);
+                }
+              }}
+              disabled={isLoadingPolicy}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Trash2 className="h-4 w-4 mr-2 inline" />
+              Purge History
+            </button>
+          </div>
         </div>
       </div>
 

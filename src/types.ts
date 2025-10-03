@@ -17,6 +17,8 @@ export interface Document {
   content_excerpt: string;
   content_hash: string;
   indexed_at: string;
+  version: number;
+  is_latest: boolean;
 }
 
 export interface Snippet {
@@ -62,6 +64,9 @@ export interface Citation {
   path: string;
   chunk_id: number;
   excerpt: string;
+  used_version: number;
+  latest_version: number;
+  is_latest: boolean;
 }
 
 export interface IndexingResult {
@@ -69,4 +74,31 @@ export interface IndexingResult {
   files_skipped: number;
   files_failed: number;
   errors: string[];
+}
+
+export interface VersionHistory {
+  path: string;
+  versions: Document[];
+}
+
+export interface DiffLine {
+  type: 'added' | 'removed' | 'unchanged';
+  line: number;
+  content: string;
+}
+
+export interface VersionDiff {
+  path: string;
+  version_a: number;
+  version_b: number;
+  diff: {
+    lines: DiffLine[];
+    summary: {
+      added: number;
+      removed: number;
+      unchanged: number;
+    };
+  };
+  document_a: Document;
+  document_b: Document;
 }

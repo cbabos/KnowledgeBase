@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, FileText, Calendar, Tag, Folder } from 'lucide-react';
-import { MCPTool, SearchResult, SearchFilters } from '../types';
+import { Search, Filter, FileText, Calendar, Tag, Folder, History } from 'lucide-react';
+import { MCPTool, SearchResult, SearchFilters, Document } from '../types';
+import VersionHistoryInterface from './VersionHistoryInterface';
 
 interface SearchInterfaceProps {
   tools: MCPTool[];
@@ -12,8 +13,11 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({});
+  const [includeHistorical, setIncludeHistorical] = useState(false);
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [documentContent, setDocumentContent] = useState<string>('');
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [versionHistoryDocument, setVersionHistoryDocument] = useState<Document | null>(null);
 
   const searchNotes = async () => {
     if (!query.trim()) return;
@@ -26,6 +30,7 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
           query: query.trim(),
           limit: 20,
           offset: 0,
+          include_historical: includeHistorical,
         },
       };
 
@@ -85,6 +90,16 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
     readDocument(result.document.id);
   };
 
+  const handleViewVersionHistory = (document: Document) => {
+    setVersionHistoryDocument(document);
+    setShowVersionHistory(true);
+  };
+
+  const handleBackFromVersionHistory = () => {
+    setShowVersionHistory(false);
+    setVersionHistoryDocument(null);
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -96,6 +111,15 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
+
+  if (showVersionHistory && versionHistoryDocument) {
+    return (
+      <VersionHistoryInterface
+        document={versionHistoryDocument}
+        onBack={handleBackFromVersionHistory}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -138,6 +162,19 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
         {/* Filters */}
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mb-4">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={includeHistorical}
+                  onChange={(e) => setIncludeHistorical(e.target.checked)}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Include historical versions
+                </span>
+              </label>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -231,31 +268,53 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
               }`}
             >
               <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {result.document.title || result.document.filename}
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4 text-gray-400" />
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {result.document.title || result.document.filename}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  .{result.document.extension}
+                </span>
+                {result.document.version > 1 && (
+                  <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
+                    v{result.document.version}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    .{result.document.extension}
+                )}
+                {!result.document.is_latest && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-1 rounded">
+                    Historical
                   </span>
-                </div>
+                )}
+              </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {formatFileSize(result.document.size)}
                 </span>
               </div>
 
-              <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 mb-2">
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  {formatDate(result.document.modified_at)}
-                </div>
-                {result.document.tags.length > 0 && (
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center">
-                    <Tag className="h-3 w-3 mr-1" />
-                    {result.document.tags.slice(0, 3).join(', ')}
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {formatDate(result.document.modified_at)}
                   </div>
-                )}
+                  {result.document.tags.length > 0 && (
+                    <div className="flex items-center">
+                      <Tag className="h-3 w-3 mr-1" />
+                      {result.document.tags.slice(0, 3).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewVersionHistory(result.document);
+                  }}
+                  className="flex items-center px-2 py-1 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                >
+                  <History className="h-3 w-3 mr-1" />
+                  History
+                </button>
               </div>
 
               {result.snippets.length > 0 && (
