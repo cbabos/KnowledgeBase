@@ -432,9 +432,32 @@ impl MCPServer {
         let doc_a = doc_a.unwrap();
         let doc_b = doc_b.unwrap();
 
-        // Read file contents for both versions
-        let content_a = std::fs::read_to_string(&doc_a.path)?;
-        let content_b = std::fs::read_to_string(&doc_b.path)?;
+        // Prefer stored snapshots for accurate comparison
+        let content_a = if let Some(s) = self.db.get_document_snapshot(&doc_a.id).await? {
+            s
+        } else {
+            // Fallback: reconstruct from indexed chunks
+            let chunks = self.db.get_index_entries_for_document(&doc_a.id).await?;
+            if chunks.is_empty() {
+                std::fs::read_to_string(&doc_a.path)?
+            } else {
+                let mut ordered = chunks;
+                ordered.sort_by_key(|c| c.chunk_id);
+                ordered.iter().map(|c| c.chunk_text.as_str()).collect::<Vec<_>>().join("\n")
+            }
+        };
+        let content_b = if let Some(s) = self.db.get_document_snapshot(&doc_b.id).await? {
+            s
+        } else {
+            let chunks = self.db.get_index_entries_for_document(&doc_b.id).await?;
+            if chunks.is_empty() {
+                std::fs::read_to_string(&doc_b.path)?
+            } else {
+                let mut ordered = chunks;
+                ordered.sort_by_key(|c| c.chunk_id);
+                ordered.iter().map(|c| c.chunk_text.as_str()).collect::<Vec<_>>().join("\n")
+            }
+        };
 
         // Simple diff implementation
         let diff = self.compute_diff(&content_a, &content_b);
@@ -456,63 +479,40 @@ impl MCPServer {
     }
 
     fn compute_diff(&self, content_a: &str, content_b: &str) -> serde_json::Value {
-        // Simple line-based diff
-        let lines_a: Vec<&str> = content_a.lines().collect();
-        let lines_b: Vec<&str> = content_b.lines().collect();
-
-        let mut diff_lines = Vec::new();
-        let mut i = 0;
-        let mut j = 0;
-
-        while i < lines_a.len() || j < lines_b.len() {
-            if i >= lines_a.len() {
-                // Only lines in B remain
-                diff_lines.push(serde_json::json!({
-                    "type": "added",
-                    "line": j + 1,
-                    "content": lines_b[j]
-                }));
-                j += 1;
-            } else if j >= lines_b.len() {
-                // Only lines in A remain
-                diff_lines.push(serde_json::json!({
-                    "type": "removed",
-                    "line": i + 1,
-                    "content": lines_a[i]
-                }));
+        // Line-based LCS diff for better accuracy
+        let a: Vec<&str> = content_a.lines().collect();
+        let b: Vec<&str> = content_b.lines().collect();
+        let n = a.len();
+        let m = b.len();
+        let mut dp = vec![vec![0usize; m + 1]; n + 1];
+        for i in (0..n).rev() {
+            for j in (0..m).rev() {
+                dp[i][j] = if a[i] == b[j] { dp[i + 1][j + 1] + 1 } else { dp[i + 1][j].max(dp[i][j + 1]) };
+            }
+        }
+        let mut i = 0usize;
+        let mut j = 0usize;
+        let mut lines = Vec::new();
+        while i < n && j < m {
+            if a[i] == b[j] {
+                lines.push(serde_json::json!({"type": "unchanged", "line": i + 1, "content": a[i]}));
+                i += 1; j += 1;
+            } else if dp[i + 1][j] >= dp[i][j + 1] {
+                lines.push(serde_json::json!({"type": "removed", "line": i + 1, "content": a[i]}));
                 i += 1;
-            } else if lines_a[i] == lines_b[j] {
-                // Lines are the same
-                diff_lines.push(serde_json::json!({
-                    "type": "unchanged",
-                    "line": i + 1,
-                    "content": lines_a[i]
-                }));
-                i += 1;
-                j += 1;
             } else {
-                // Lines are different - simple heuristic: assume line was changed
-                diff_lines.push(serde_json::json!({
-                    "type": "removed",
-                    "line": i + 1,
-                    "content": lines_a[i]
-                }));
-                diff_lines.push(serde_json::json!({
-                    "type": "added",
-                    "line": j + 1,
-                    "content": lines_b[j]
-                }));
-                i += 1;
+                lines.push(serde_json::json!({"type": "added", "line": j + 1, "content": b[j]}));
                 j += 1;
             }
         }
-
+        while i < n { lines.push(serde_json::json!({"type": "removed", "line": i + 1, "content": a[i]})); i += 1; }
+        while j < m { lines.push(serde_json::json!({"type": "added", "line": j + 1, "content": b[j]})); j += 1; }
         serde_json::json!({
-            "lines": diff_lines,
+            "lines": lines,
             "summary": {
-                "added": diff_lines.iter().filter(|l| l["type"] == "added").count(),
-                "removed": diff_lines.iter().filter(|l| l["type"] == "removed").count(),
-                "unchanged": diff_lines.iter().filter(|l| l["type"] == "unchanged").count()
+                "added": lines.iter().filter(|l| l["type"] == "added").count(),
+                "removed": lines.iter().filter(|l| l["type"] == "removed").count(),
+                "unchanged": lines.iter().filter(|l| l["type"] == "unchanged").count()
             }
         })
     }

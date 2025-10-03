@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, Send, FileText, ExternalLink, AlertCircle, Search } from 'lucide-react';
 import { MCPTool, QAAnswer, Citation } from '../types';
+import DocumentViewerModal from './DocumentViewerModal';
 
 interface QnAInterfaceProps {
   tools: MCPTool[];
@@ -13,6 +14,7 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCitations, setShowCitations] = useState(false);
+  const [viewer, setViewer] = useState<{ id: string; filename: string; path: string; used?: number; latest?: number; isLatest?: boolean } | null>(null);
 
   const askQuestion = async () => {
     if (!question.trim()) return;
@@ -249,8 +251,14 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) 
 
                         <button
                           onClick={() => {
-                            // In a real app, this would open the document
-                            console.log('Open document:', citation.document_id);
+                            setViewer({
+                              id: citation.document_id,
+                              filename: citation.filename,
+                              path: citation.path,
+                              used: (citation as any).used_version,
+                              latest: (citation as any).latest_version,
+                              isLatest: (citation as any).is_latest,
+                            });
                           }}
                           className="ml-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                           title="Open document"
@@ -269,6 +277,17 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) 
             </div>
           )}
         </div>
+      )}
+      {viewer && (
+        <DocumentViewerModal
+          documentId={viewer.id}
+          filename={viewer.filename}
+          path={viewer.path}
+          usedVersion={viewer.used}
+          latestVersion={viewer.latest}
+          isLatest={viewer.isLatest}
+          onClose={() => setViewer(null)}
+        />
       )}
 
       {/* Help Text */}

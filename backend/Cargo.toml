@@ -21,6 +21,10 @@ pdf-extract.workspace = true
 reqwest.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+which = "6"
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
+html-escape = "0.2"
+tempfile = "3"
 
 # Web server
 warp = "0.3"

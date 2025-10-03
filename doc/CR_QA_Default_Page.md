@@ -17,8 +17,8 @@ Users find search less useful as a standalone; Q&A should become the default lan
 - UI: “Switch to Search” tab/button available.  
 - CLI: `search <query>` remains available.  
 
-### CR-QA-US-03 — Show document version
-**As a** user **I want** to see the version of the cited document and also the latest version of said document **so that** I can analise how fresh the information is.  
+### CR-QA-US-03 — Show document version and indexing date
+**As a** user **I want** to see the version of the cited document and also the date of indexing of said document **so that** I can analise how fresh the information is.  
 **Acceptance Criteria:**  
 - UI: When showing the citation both the used version and the latest version of the document is represented on the page.  
 

@@ -8,6 +8,49 @@ use std::path::Path;
 use uuid::Uuid;
 use walkdir::WalkDir;
 
+fn convert_docx_to_markdown(path: &Path) -> Result<String> {
+    // Prefer pandoc if available
+    let pandoc = which::which("pandoc");
+    if pandoc.is_ok() {
+        let output = std::process::Command::new(pandoc.unwrap())
+            .arg(path.to_string_lossy().to_string())
+            .arg("-t")
+            .arg("gfm")
+            .arg("-f")
+            .arg("docx")
+            .output()?;
+        if output.status.success() {
+            return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+        } else {
+            return Err(anyhow::anyhow!("pandoc failed: {}", String::from_utf8_lossy(&output.stderr)));
+        }
+    }
+
+    // Fallback: extract plain text using zip/docx structure (minimal)
+    // We avoid adding heavy deps; simple best-effort text extraction
+    let file = std::fs::File::open(path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut document_xml = String::new();
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        if file.name().ends_with("word/document.xml") {
+            use std::io::Read;
+            file.read_to_string(&mut document_xml)?;
+            break;
+        }
+    }
+    if document_xml.is_empty() {
+        return Err(anyhow::anyhow!("document.xml not found in docx"));
+    }
+    // Very rough XML -> text: strip tags, keep paragraphs newlines
+    let text = regex::Regex::new("<w:p[\"' =>A-Za-z0-9/.:;-]*>")
+        .unwrap()
+        .replace_all(&document_xml, "\n");
+    let text = regex::Regex::new("<[^>]+>").unwrap().replace_all(&text, "");
+    let text = html_escape::decode_html_entities(&text);
+    Ok(text.trim().to_string())
+}
+
 pub struct CorpusManager {
     db: Database,
     exclusions: Vec<String>,
@@ -62,8 +105,19 @@ impl CorpusManager {
         let modified_at = metadata.modified()?.into();
         let size = metadata.len();
 
-        // Read file content
-        let content = fs::read_to_string(path)?;
+        // Read file content (with conversions for some types)
+        let ext = path.extension().unwrap_or_default().to_string_lossy().to_lowercase();
+        let content = if ext == "docx" {
+            match convert_docx_to_markdown(path) {
+                Ok(md) => md,
+                Err(e) => {
+                    // Skip indexing if conversion fails
+                    return Err(anyhow::anyhow!("DOCX conversion failed: {}", e));
+                }
+            }
+        } else {
+            fs::read_to_string(path)?
+        };
         let content_hash = self.compute_hash(&content);
 
         // Check if file has changed
@@ -86,10 +140,10 @@ impl CorpusManager {
             id: Uuid::new_v4(),
             path: path.to_path_buf(),
             filename: path.file_name().unwrap().to_string_lossy().to_string(),
-            extension: path.extension()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string(),
+            // Normalize DOCX content to markdown for better downstream rendering
+            extension: if ext == "docx" { "md".to_string() } else { 
+                path.extension().unwrap_or_default().to_string_lossy().to_string() 
+            },
             size,
             modified_at,
             title,
@@ -104,6 +158,9 @@ impl CorpusManager {
 
         // Insert document
         self.db.insert_document(&document).await?;
+
+        // Store content snapshot for accurate diffs later
+        let _ = self.db.insert_document_snapshot(&document.id, &content).await;
 
         // Create index entries
         let index_entries = self.create_index_entries(&document, &content);
@@ -135,7 +192,7 @@ impl CorpusManager {
     fn is_supported_file_type(&self, path: &Path) -> bool {
         if let Some(extension) = path.extension() {
             let ext = extension.to_string_lossy().to_lowercase();
-            matches!(ext.as_str(), "md" | "txt" | "pdf")
+            matches!(ext.as_str(), "md" | "txt" | "pdf" | "docx")
         } else {
             false
         }
@@ -219,6 +276,11 @@ impl CorpusManager {
         let mut chunk_id = 0;
 
         while start < content.len() {
+            // Ensure start is on a UTF-8 boundary
+            while start < content.len() && !content.is_char_boundary(start) {
+                start += 1;
+            }
+
             let end = std::cmp::min(start + chunk_size, content.len());
             
             // Ensure we don't split in the middle of a UTF-8 character
@@ -264,7 +326,11 @@ impl CorpusManager {
             });
 
             start = if final_end < content.len() {
-                final_end.saturating_sub(overlap)
+                let mut next = final_end.saturating_sub(overlap);
+                while next < content.len() && !content.is_char_boundary(next) {
+                    next += 1;
+                }
+                next
             } else {
                 break;
             };

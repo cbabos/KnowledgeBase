@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, FileText, Calendar, Tag, Folder, History } from 'lucide-react';
 import { MCPTool, SearchResult, SearchFilters, Document } from '../types';
 import VersionHistoryInterface from './VersionHistoryInterface';
+import { marked } from 'marked';
 
 interface SearchInterfaceProps {
   tools: MCPTool[];
@@ -371,9 +372,11 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
               )}
 
               <div className="prose prose-sm max-w-none dark:prose-invert">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                  {documentContent}
-                </pre>
+                {selectedResult.document.extension.toLowerCase() === 'md' ? (
+                  <div dangerouslySetInnerHTML={{ __html: marked.parse(documentContent || '') }} />
+                ) : (
+                  <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{documentContent}</pre>
+                )}
               </div>
             </div>
           ) : (

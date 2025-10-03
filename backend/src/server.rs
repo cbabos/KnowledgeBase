@@ -73,34 +73,76 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                             }
                         })
                 )
-                .or(
+                .or({
                     // Index management endpoints
-                    warp::path("index")
-                        .and(
-                            warp::post()
-                                .and(warp::body::json())
-                                .and_then({
-                                    let db = db.clone();
-                                    move |request: IndexRequest| {
-                                        let db = db.clone();
-                                        async move {
-                                            match index_folders(db, request.folders).await {
-                                                Ok(result) => Ok::<_, Infallible>(warp::reply::json(&IndexResponse {
-                                                    success: true,
-                                                    message: "Indexing completed".to_string(),
-                                                    result: Some(result),
-                                                })),
-                                                Err(e) => Ok(warp::reply::json(&IndexResponse {
-                                                    success: false,
-                                                    message: e.to_string(),
-                                                    result: None,
-                                                })),
-                                            }
-                                        }
+                    let index_post = warp::path("index")
+                        .and(warp::post())
+                        .and(warp::body::json())
+                        .and_then({
+                            let db = db.clone();
+                            move |request: IndexRequest| {
+                                let db = db.clone();
+                                async move {
+                                    match index_folders(db, request.folders).await {
+                                        Ok(result) => Ok::<_, Infallible>(warp::reply::json(&IndexResponse {
+                                            success: true,
+                                            message: "Indexing completed".to_string(),
+                                            result: Some(result),
+                                        })),
+                                        Err(e) => Ok(warp::reply::json(&IndexResponse {
+                                            success: false,
+                                            message: e.to_string(),
+                                            result: None,
+                                        })),
                                     }
-                                })
-                        )
-                )
+                                }
+                            }
+                        });
+
+                    let index_list = warp::path!("index" / "folders")
+                        .and(warp::get())
+                        .and_then({
+                            let db = db.clone();
+                            move || {
+                                let db = db.clone();
+                                async move {
+                                    let folders = db.list_indexed_folders().await;
+                                    match folders {
+                                        Ok(list) => Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                            "success": true,
+                                            "folders": list
+                                        }))),
+                                        Err(e) => Ok(warp::reply::json(&serde_json::json!({
+                                            "success": false,
+                                            "error": e.to_string()
+                                        }))),
+                                    }
+                                }
+                            }
+                        });
+
+                    let index_remove = warp::path!("index" / "folders")
+                        .and(warp::delete())
+                        .and(warp::query::<std::collections::HashMap<String, String>>())
+                        .and_then({
+                            let db = db.clone();
+                            move |params: std::collections::HashMap<String, String>| {
+                                let db = db.clone();
+                                async move {
+                                    if let Some(path) = params.get("path") {
+                                        // purge docs and remove folder record
+                                        let _ = db.purge_folder_documents(path).await;
+                                        let _ = db.remove_indexed_folder(path).await;
+                                        Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({"success": true})))
+                                    } else {
+                                        Ok(warp::reply::json(&serde_json::json!({"success": false, "error": "missing path"})))
+                                    }
+                                }
+                            }
+                        });
+
+                    index_post.or(index_list).or(index_remove)
+                })
                 .or(
                     // Health check
                     warp::path("health")
@@ -171,11 +213,19 @@ async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<crate::cor
         "*.log".to_string(),
     ];
 
-    let corpus_manager = crate::corpus::CorpusManager::new(db, exclusions);
+    let corpus_manager = crate::corpus::CorpusManager::new(db.clone(), exclusions);
 
-    for folder in folders {
+    for raw in folders {
+        // Normalize: trim and canonicalize if possible
+        let mut path_str = raw.to_string_lossy().trim().to_string();
+        let normalized = std::path::PathBuf::from(&path_str);
+        let folder = match std::fs::canonicalize(&normalized) {
+            Ok(abs) => abs,
+            Err(_) => normalized.clone(),
+        };
+
         if !folder.exists() {
-            total_result.errors.push(format!("Folder does not exist: {}", folder.display()));
+            total_result.errors.push(format!("Folder does not exist: {}", path_str));
             continue;
         }
 
@@ -185,6 +235,9 @@ async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<crate::cor
                 total_result.files_skipped += result.files_skipped;
                 total_result.files_failed += result.files_failed;
                 total_result.errors.extend(result.errors);
+                // Upsert folder stats
+                let file_count = result.files_processed + result.files_skipped + result.files_failed;
+                let _ = db.upsert_indexed_folder(&folder.to_string_lossy(), file_count).await;
             }
             Err(e) => {
                 total_result.errors.push(format!("Failed to index folder {}: {}", folder.display(), e));

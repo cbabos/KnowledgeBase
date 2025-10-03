@@ -82,6 +82,32 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        // Optional content snapshots to enable accurate version diffs
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS document_snapshots (
+                document_id TEXT PRIMARY KEY,
+                content TEXT NOT NULL,
+                FOREIGN KEY (document_id) REFERENCES documents (id)
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Track indexed folders
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS indexed_folders (
+                path TEXT PRIMARY KEY,
+                file_count INTEGER NOT NULL DEFAULT 0,
+                last_indexed TEXT
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         // Create indexes for better performance
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_documents_path ON documents (path)")
             .execute(&self.pool)
@@ -108,6 +134,100 @@ impl Database {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn insert_document_snapshot(&self, document_id: &Uuid, content: &str) -> Result<()> {
+        sqlx::query(
+            r#"
+            INSERT OR REPLACE INTO document_snapshots (document_id, content)
+            VALUES (?, ?)
+            "#,
+        )
+        .bind(document_id.to_string())
+        .bind(content)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_document_snapshot(&self, document_id: &Uuid) -> Result<Option<String>> {
+        let row = sqlx::query("SELECT content FROM document_snapshots WHERE document_id = ?")
+            .bind(document_id.to_string())
+            .fetch_optional(&self.pool)
+            .await?;
+        if let Some(row) = row {
+            let content: String = row.get("content");
+            Ok(Some(content))
+        } else {
+            Ok(None)
+        }
+    }
+
+    // Indexed folders CRUD
+    pub async fn upsert_indexed_folder(&self, path: &str, file_count: u32) -> Result<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO indexed_folders (path, file_count, last_indexed)
+            VALUES (?, ?, ?)
+            ON CONFLICT(path) DO UPDATE SET
+              file_count = excluded.file_count,
+              last_indexed = excluded.last_indexed
+            "#,
+        )
+        .bind(path)
+        .bind(file_count as i64)
+        .bind(Utc::now().to_rfc3339())
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn list_indexed_folders(&self) -> Result<Vec<(String, u32, Option<String>)>> {
+        let rows = sqlx::query("SELECT path, file_count, last_indexed FROM indexed_folders ORDER BY path")
+            .fetch_all(&self.pool)
+            .await?;
+        let mut out = Vec::new();
+        for row in rows {
+            let path: String = row.get("path");
+            let file_count: i64 = row.get("file_count");
+            let last_indexed: Option<String> = row.get("last_indexed");
+            out.push((path, file_count as u32, last_indexed));
+        }
+        Ok(out)
+    }
+
+    pub async fn remove_indexed_folder(&self, path: &str) -> Result<()> {
+        sqlx::query("DELETE FROM indexed_folders WHERE path = ?")
+            .bind(path)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    // Folder purge: delete documents under a folder and their index entries
+    pub async fn purge_folder_documents(&self, folder_path: &str) -> Result<u64> {
+        // Find document ids under folder
+        let like_pattern = format!("{}%", folder_path);
+        let rows = sqlx::query("SELECT id FROM documents WHERE path LIKE ?")
+            .bind(like_pattern)
+            .fetch_all(&self.pool)
+            .await?;
+        let mut count = 0u64;
+        for row in rows {
+            let id_str: String = row.get("id");
+            // Delete index entries
+            sqlx::query("DELETE FROM index_entries WHERE document_id = ?")
+                .bind(&id_str)
+                .execute(&self.pool)
+                .await?;
+            // Delete document
+            let res = sqlx::query("DELETE FROM documents WHERE id = ?")
+                .bind(&id_str)
+                .execute(&self.pool)
+                .await?;
+            count += res.rows_affected();
+        }
+        Ok(count)
     }
 
     pub async fn insert_document(&self, document: &Document) -> Result<()> {
