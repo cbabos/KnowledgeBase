@@ -10,14 +10,14 @@ const originalFetch = global.fetch as any;
 beforeAll(() => {
   // @ts-ignore
   global.fetch = vi.fn((url: any, options?: any) => {
-    const urlStr = typeof url === 'string' ? url : (url?.url || '');
+    const urlStr = typeof url === 'string' ? url : url?.url || '';
     if (urlStr.includes('/api/tools')) {
       return Promise.resolve({
         ok: true,
-        json: async () => ([
+        json: async () => [
           { name: 'answer_question', description: 'Answer', input_schema: {} },
           { name: 'search_notes', description: 'Search', input_schema: {} },
-        ]),
+        ],
       });
     }
     if (urlStr.includes('/api/request')) {
@@ -48,7 +48,10 @@ beforeAll(() => {
         });
       }
       // Default successful empty response
-      return Promise.resolve({ ok: true, json: async () => ({ success: true, data: null }) });
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ success: true, data: null }),
+      });
     }
     // Default
     return Promise.resolve({ ok: true, json: async () => ({ success: true }) });
@@ -62,13 +65,17 @@ afterAll(() => {
 
 test('lands on Q&A tab by default', async () => {
   render(<App />);
-  await waitFor(() => expect(screen.getByText('Ask a Question')).toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.getByText('Ask a Question')).toBeInTheDocument()
+  );
 });
 
 test('renders version information in citations', async () => {
   render(<App />);
 
-  const input = await screen.findByPlaceholderText('Ask a question about your knowledge base...');
+  const input = await screen.findByPlaceholderText(
+    'Ask a question about your knowledge base...'
+  );
   fireEvent.change(input, { target: { value: 'What is doc?' } });
   fireEvent.click(screen.getByText('Ask'));
 
@@ -84,5 +91,3 @@ test('renders version information in citations', async () => {
   expect(screen.getByText(/Latest: v2/)).toBeInTheDocument();
   expect(screen.getByText('(Outdated)')).toBeInTheDocument();
 });
-
-

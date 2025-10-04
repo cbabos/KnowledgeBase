@@ -1,9 +1,11 @@
 # Folder Reassignment Guide
 
 ## Problem
+
 When reassigning a folder to a different project, the current implementation only updates the folder record but doesn't move the associated documents (including historical versions). This creates orphaned historical data that prevents project deletion.
 
 ## Solution
+
 Use the `reassign_folder.sh` script to safely move all document versions (current and historical) when reassigning a folder.
 
 ## Usage
@@ -13,6 +15,7 @@ Use the `reassign_folder.sh` script to safely move all document versions (curren
 ```
 
 ### Example
+
 ```bash
 # Move all documents in /path/to/folder from project A to project B
 ./reassign_folder.sh "/path/to/folder" "old-project-id" "new-project-id"
@@ -89,6 +92,7 @@ If you encounter issues:
 ## Database Schema
 
 The script works with these tables:
+
 - `indexed_folders`: Stores folder metadata and project assignments
 - `documents`: Stores all document versions with project assignments
 - `projects`: Stores project information

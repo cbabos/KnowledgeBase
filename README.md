@@ -17,24 +17,28 @@ A local-first knowledge management system that helps you search, summarize, and 
 ## Key Capabilities
 
 ### Project Organization
+
 - Create and manage multiple projects to organize your knowledge base
 - Assign folders and documents to specific projects
 - Filter search and Q&A operations by project context
 - Reassign folders between projects while preserving version history
 
 ### Document Versioning
+
 - Automatic version tracking when documents are modified
 - View version history with timestamps and change summaries
 - Compare document versions with detailed diff display
 - Preserve all historical versions for audit and recovery
 
 ### Advanced Search & Q&A
+
 - Full-text search with project filtering and file type filtering
 - Natural language Q&A with markdown-formatted responses
 - Citation tracking showing document versions used
 - Context-aware responses based on project selection
 
 ### File Format Support
+
 - **Markdown**: Full rendering with syntax highlighting
 - **Word Documents**: Automatic conversion to markdown with Pandoc
 - **Text Files**: Plain text processing with metadata extraction
@@ -52,23 +56,26 @@ A local-first knowledge management system that helps you search, summarize, and 
 ### Prerequisites
 
 1. **Ollama**: Install and run Ollama with the gpt-oss:20b model
+
    ```bash
    # Install Ollama (if not already installed)
    curl -fsSL https://ollama.ai/install.sh | sh
-   
+
    # Pull the model
    ollama pull gpt-oss:20b
-   
+
    # Start Ollama server
    ollama serve
    ```
 
 2. **Rust**: Install Rust toolchain
+
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```
 
 3. **Node.js**: Install Node.js for the frontend
+
    ```bash
    # Using nvm (recommended)
    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
@@ -76,13 +83,14 @@ A local-first knowledge management system that helps you search, summarize, and 
    ```
 
 4. **Pandoc** (Optional): For enhanced .docx support
+
    ```bash
    # macOS
    brew install pandoc
-   
+
    # Ubuntu/Debian
    sudo apt-get install pandoc
-   
+
    # Windows
    # Download from https://pandoc.org/installing.html
    ```
@@ -90,16 +98,18 @@ A local-first knowledge management system that helps you search, summarize, and 
 ### Installation
 
 1. **Clone and build the backend**:
+
    ```bash
    cd backend
    cargo build --release
    ```
 
 2. **Build the frontend**:
+
    ```bash
    # Install dependencies
    npm install
-   
+
    # Build for production
    npm run build
    ```
@@ -113,35 +123,40 @@ A local-first knowledge management system that helps you search, summarize, and 
 ### Running the Application
 
 1. **Start the backend server**:
+
    ```bash
    cd backend
    cargo run
    ```
+
    The server will start on `http://localhost:8080`
 
 2. **Start the frontend development server**:
+
    ```bash
    npm run dev
    ```
+
    The frontend will start on `http://localhost:3000` (or 3001 if 3000 is in use)
 
 3. **Access the web interface**:
    Open your browser and go to `http://localhost:3000` (or the port shown in the terminal)
 
 4. **Use the CLI**:
+
    ```bash
    # Create a project
    ./target/release/kb project create "My Project" --description "Project description"
-   
+
    # Add a folder to index with project assignment
    ./target/release/kb corpus add /path/to/your/notes --project "My Project"
-   
+
    # Build the index
    ./target/release/kb corpus index
-   
+
    # Search your knowledge base
    ./target/release/kb search "your search query"
-   
+
    # Ask a question
    ./target/release/kb ask "What did I write about Docker?"
    ```
@@ -186,6 +201,7 @@ kb ask "question" --project "Project Name"  # Ask within project context
 ## Configuration
 
 The application stores configuration in:
+
 - **macOS**: `~/Library/Application Support/knowledge-base/config.toml`
 - **Windows**: `%APPDATA%/knowledge-base/config.toml`
 - **Linux**: `~/.config/knowledge-base/config.toml`
@@ -239,12 +255,14 @@ knowledge-base/
 ### Running in Development
 
 1. **Backend**:
+
    ```bash
    cd backend
    cargo run
    ```
 
 2. **Frontend**:
+
    ```bash
    npm run dev
    ```

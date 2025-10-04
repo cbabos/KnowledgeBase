@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Search, FileText, MessageSquare, Settings, FolderPlus, Database, Folder } from 'lucide-react';
+import {
+  Search,
+  FileText,
+  MessageSquare,
+  Settings,
+  FolderPlus,
+  Database,
+  Folder,
+} from 'lucide-react';
 import SearchInterface from './components/SearchInterface';
 import QnAInterface from './components/QnAInterface';
 import SettingsInterface from './components/SettingsInterface';
@@ -19,7 +27,6 @@ function App() {
     loadTools();
     loadProjects();
   }, []);
-
 
   const loadTools = async () => {
     try {
@@ -49,7 +56,6 @@ function App() {
     }
   };
 
-
   const tabs = [
     { id: 'qa' as Tab, label: 'Q&A', icon: MessageSquare },
     { id: 'search' as Tab, label: 'Search', icon: Search },
@@ -60,32 +66,33 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="loading-spinner mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading Knowledge Base...</p>
+      <div className='min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='loading-spinner mx-auto mb-4'></div>
+          <p className='text-gray-600 dark:text-gray-400'>
+            Loading Knowledge Base...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-primary-500 mr-3" />
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+      <header className='bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex justify-between items-center h-16'>
+            <div className='flex items-center'>
+              <FileText className='h-8 w-8 text-primary-500 mr-3' />
+              <h1 className='text-xl font-semibold text-gray-900 dark:text-white'>
                 Knowledge Base
               </h1>
             </div>
 
-            
             {/* Tab Navigation */}
-            <nav className="flex space-x-1">
-              {tabs.map((tab) => {
+            <nav className='flex space-x-1'>
+              {tabs.map(tab => {
                 const Icon = tab.icon;
                 return (
                   <button
@@ -97,7 +104,7 @@ function App() {
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
+                    <Icon className='h-4 w-4 mr-2' />
                     {tab.label}
                   </button>
                 );
@@ -108,12 +115,24 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="fade-in">
-          {activeTab === 'qa' && <QnAInterface tools={tools} projects={projects} onSwitchToSearch={() => setActiveTab('search')} />}
-          {activeTab === 'search' && <SearchInterface tools={tools} projects={projects} />}
-          {activeTab === 'projects' && <ProjectsInterface onProjectChange={loadProjects} />}
-          {activeTab === 'indexing' && <IndexingInterface projects={projects} />}
+      <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        <div className='fade-in'>
+          {activeTab === 'qa' && (
+            <QnAInterface
+              tools={tools}
+              projects={projects}
+              onSwitchToSearch={() => setActiveTab('search')}
+            />
+          )}
+          {activeTab === 'search' && (
+            <SearchInterface tools={tools} projects={projects} />
+          )}
+          {activeTab === 'projects' && (
+            <ProjectsInterface onProjectChange={loadProjects} />
+          )}
+          {activeTab === 'indexing' && (
+            <IndexingInterface projects={projects} />
+          )}
           {activeTab === 'settings' && <SettingsInterface />}
         </div>
       </main>
