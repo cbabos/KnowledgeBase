@@ -251,12 +251,8 @@ curl -s http://localhost:5173 > /dev/null && echo "Dev server OK" || echo "Dev s
 
 # 4. Code formatting (if not using pre-commit hooks)
 npm run format:src
-
-# 5. Only commit if all above pass
-git add .
-git commit -m "descriptive commit message"
-git push origin main
 ```
+NEVER commit on your own, just if explicitly was asked. 
 
 **Failure to follow this process will result in broken builds and unstable code.**
 
