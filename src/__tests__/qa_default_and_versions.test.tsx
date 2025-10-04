@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import App from '../App';
 
 // Mock fetch globally
@@ -8,7 +9,7 @@ const originalFetch = global.fetch as any;
 
 beforeAll(() => {
   // @ts-ignore
-  global.fetch = jest.fn((url: any, options?: any) => {
+  global.fetch = vi.fn((url: any, options?: any) => {
     const urlStr = typeof url === 'string' ? url : (url?.url || '');
     if (urlStr.includes('/api/tools')) {
       return Promise.resolve({

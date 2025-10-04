@@ -12,7 +12,7 @@ A local-first knowledge management system that helps you search, summarize, and 
 - **Multiple File Types**: Support for Markdown, Text, and Word documents (.docx)
 - **Multiple Interfaces**: Web UI and CLI with full feature parity
 - **Privacy-Focused**: Optional remote processing with explicit consent
-- **MCP Integration**: Micro-Agent Communication Protocol for AI tool integration
+- **MCP Integration**: Model Context Protocol for AI tool integration
 
 ## Key Capabilities
 
@@ -119,10 +119,16 @@ A local-first knowledge management system that helps you search, summarize, and 
    ```
    The server will start on `http://localhost:8080`
 
-2. **Access the web interface**:
-   Open your browser and go to `http://localhost:8080`
+2. **Start the frontend development server**:
+   ```bash
+   npm run dev
+   ```
+   The frontend will start on `http://localhost:3000` (or 3001 if 3000 is in use)
 
-3. **Use the CLI**:
+3. **Access the web interface**:
+   Open your browser and go to `http://localhost:3000` (or the port shown in the terminal)
+
+4. **Use the CLI**:
    ```bash
    # Create a project
    ./target/release/kb project create "My Project" --description "Project description"
@@ -240,7 +246,7 @@ knowledge-base/
 
 2. **Frontend**:
    ```bash
-   npm start
+   npm run dev
    ```
 
 3. **CLI**:
@@ -295,6 +301,7 @@ MIT License - see LICENSE file for details.
 
 3. **Frontend not loading**:
    - Ensure the backend is running on port 8080
+   - Ensure the frontend dev server is running on port 3000/3001
    - Check browser console for errors
    - Verify the build was successful
 

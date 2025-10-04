@@ -33,4 +33,22 @@ fi
 
 echo "Building and starting backend server..."
 cargo build
-cargo run
+cargo run &
+BACKEND_PID=$!
+
+# Wait a moment for backend to start
+sleep 2
+
+echo "Starting frontend development server..."
+cd ..
+npm run dev &
+FRONTEND_PID=$!
+
+echo "Knowledge Base is starting up..."
+echo "Backend: http://localhost:8080"
+echo "Frontend: http://localhost:3000"
+echo ""
+echo "Press Ctrl+C to stop both servers"
+
+# Wait for user to stop
+wait $BACKEND_PID $FRONTEND_PID
