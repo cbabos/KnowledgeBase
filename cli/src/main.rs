@@ -82,6 +82,11 @@ enum Commands {
         #[arg(short, long, default_value = "text")]
         format: String,
     },
+    /// Project management commands
+    Project {
+        #[command(subcommand)]
+        action: ProjectAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -90,6 +95,9 @@ enum CorpusAction {
     Add {
         /// Folder path to add
         path: PathBuf,
+        /// Project ID to associate with this folder
+        #[arg(short, long)]
+        project: Option<String>,
     },
     /// List configured folders
     List,
@@ -99,11 +107,58 @@ enum CorpusAction {
         path: PathBuf,
     },
     /// Build the index
-    Index,
+    Index {
+        /// Project ID to filter indexing to specific project
+        #[arg(short, long)]
+        project: Option<String>,
+    },
     /// Rebuild the index
     Reindex,
     /// Show indexing status
     Status,
+}
+
+#[derive(Subcommand)]
+enum ProjectAction {
+    /// List all projects
+    List {
+        /// Output format (text, json)
+        #[arg(short, long, default_value = "text")]
+        format: String,
+    },
+    /// Create a new project
+    Create {
+        /// Project name
+        name: String,
+        /// Project description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Output format (text, json)
+        #[arg(short, long, default_value = "text")]
+        format: String,
+    },
+    /// Update an existing project
+    Update {
+        /// Project ID
+        id: String,
+        /// New project name
+        #[arg(short, long)]
+        name: Option<String>,
+        /// New project description
+        #[arg(short, long)]
+        description: Option<String>,
+        /// Output format (text, json)
+        #[arg(short, long, default_value = "text")]
+        format: String,
+    },
+    /// Delete a project
+    Delete {
+        /// Project ID
+        id: String,
+        /// Output format (text, json)
+        #[arg(short, long, default_value = "text")]
+        format: String,
+    },
 }
 
 struct KnowledgeBaseClient {
@@ -270,6 +325,25 @@ impl KnowledgeBaseClient {
         }
         Ok(())
     }
+
+    async fn index_folders_with_project(&self, folders: Vec<PathBuf>, project_id: Option<String>) -> Result<serde_json::Value> {
+        let mut request_body = serde_json::json!({
+            "folders": folders.iter().map(|p| p.to_string_lossy().to_string()).collect::<Vec<_>>()
+        });
+        
+        if let Some(project) = project_id {
+            request_body["project_id"] = serde_json::Value::String(project);
+        }
+
+        let response = self.client
+            .post(&format!("{}/api/index", self.base_url))
+            .json(&request_body)
+            .send()
+            .await?;
+
+        let result: serde_json::Value = response.json().await?;
+        Ok(result)
+    }
 }
 
 #[tokio::main]
@@ -290,8 +364,11 @@ async fn main() -> Result<()> {
         Some(command) => match command {
             Commands::Corpus { action } => {
                 match action {
-                    CorpusAction::Add { path } => {
+                    CorpusAction::Add { path, project } => {
                         println!("Adding folder: {}", path.display());
+                        if let Some(project_id) = project {
+                            println!("Associating with project: {}", project_id);
+                        }
                         // In a real implementation, this would update the configuration
                         println!("Folder added successfully");
                     }
@@ -305,11 +382,14 @@ async fn main() -> Result<()> {
                         // In a real implementation, this would update the configuration
                         println!("Folder removed successfully");
                     }
-                    CorpusAction::Index => {
+                    CorpusAction::Index { project } => {
                         println!("Building index...");
+                        if let Some(project_id) = &project {
+                            println!("Filtering to project: {}", project_id);
+                        }
                         // This would need to be implemented with actual folder paths
                         let folders = vec![PathBuf::from("./doc")]; // Example
-                        match client.index_folders(folders).await {
+                        match client.index_folders_with_project(folders, project).await {
                             Ok(result) => {
                                 println!("Indexing completed successfully");
                                 if let Some(indexing_result) = result.get("result") {
@@ -471,6 +551,91 @@ async fn main() -> Result<()> {
                     }
                 }
             }
+            Commands::Project { action } => {
+                match action {
+                    ProjectAction::List { format } => {
+                        match client.make_request("list_projects", serde_json::json!({})).await {
+                            Ok(data) => {
+                                if format == "json" {
+                                    println!("{}", serde_json::to_string_pretty(&data)?);
+                                } else {
+                                    print_projects(&data);
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to list projects: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
+                    }
+                    ProjectAction::Create { name, description, format } => {
+                        let mut arguments = serde_json::json!({
+                            "name": name
+                        });
+                        if let Some(desc) = description {
+                            arguments["description"] = serde_json::Value::String(desc);
+                        }
+
+                        match client.make_request("create_project", arguments).await {
+                            Ok(data) => {
+                                if format == "json" {
+                                    println!("{}", serde_json::to_string_pretty(&data)?);
+                                } else {
+                                    print_project_created(&data);
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to create project: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
+                    }
+                    ProjectAction::Update { id, name, description, format } => {
+                        let mut arguments = serde_json::json!({
+                            "id": id
+                        });
+                        if let Some(n) = name {
+                            arguments["name"] = serde_json::Value::String(n);
+                        }
+                        if let Some(desc) = description {
+                            arguments["description"] = serde_json::Value::String(desc);
+                        }
+
+                        match client.make_request("update_project", arguments).await {
+                            Ok(data) => {
+                                if format == "json" {
+                                    println!("{}", serde_json::to_string_pretty(&data)?);
+                                } else {
+                                    print_project_updated(&data);
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to update project: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
+                    }
+                    ProjectAction::Delete { id, format } => {
+                        let arguments = serde_json::json!({
+                            "id": id
+                        });
+
+                        match client.make_request("delete_project", arguments).await {
+                            Ok(data) => {
+                                if format == "json" {
+                                    println!("{}", serde_json::to_string_pretty(&data)?);
+                                } else {
+                                    print_project_deleted(&data);
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to delete project: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -602,5 +767,63 @@ fn print_diff(data: &serde_json::Value) {
                 }
             }
         }
+    }
+}
+
+fn print_projects(data: &serde_json::Value) {
+    if let Some(projects) = data.get("projects").and_then(|p| p.as_array()) {
+        if projects.is_empty() {
+            println!("No projects found.");
+            return;
+        }
+        
+        println!("Projects ({}):\n", projects.len());
+        
+        for (i, project) in projects.iter().enumerate() {
+            println!("{}. {}", i + 1, project["name"].as_str().unwrap_or("Unknown"));
+            println!("   ID: {}", project["id"].as_str().unwrap_or("Unknown"));
+            if let Some(description) = project.get("description").and_then(|d| d.as_str()) {
+                if !description.is_empty() {
+                    println!("   Description: {}", description);
+                }
+            }
+            println!("   Created: {}", project["created_at"].as_str().unwrap_or("Unknown"));
+            println!("   Updated: {}", project["updated_at"].as_str().unwrap_or("Unknown"));
+            println!();
+        }
+    }
+}
+
+fn print_project_created(data: &serde_json::Value) {
+    if let Some(project) = data.get("project") {
+        println!("Project created successfully!");
+        println!("Name: {}", project["name"].as_str().unwrap_or("Unknown"));
+        println!("ID: {}", project["id"].as_str().unwrap_or("Unknown"));
+        if let Some(description) = project.get("description").and_then(|d| d.as_str()) {
+            if !description.is_empty() {
+                println!("Description: {}", description);
+            }
+        }
+    }
+}
+
+fn print_project_updated(data: &serde_json::Value) {
+    if let Some(project) = data.get("project") {
+        println!("Project updated successfully!");
+        println!("Name: {}", project["name"].as_str().unwrap_or("Unknown"));
+        println!("ID: {}", project["id"].as_str().unwrap_or("Unknown"));
+        if let Some(description) = project.get("description").and_then(|d| d.as_str()) {
+            if !description.is_empty() {
+                println!("Description: {}", description);
+            }
+        }
+    }
+}
+
+fn print_project_deleted(data: &serde_json::Value) {
+    if let Some(message) = data.get("message").and_then(|m| m.as_str()) {
+        println!("{}", message);
+    } else {
+        println!("Project deleted successfully!");
     }
 }

@@ -21,6 +21,7 @@ pub struct Document {
     pub indexed_at: DateTime<Utc>,
     pub version: u32,
     pub is_latest: bool,
+    pub project_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,6 +134,42 @@ impl Database {
             .execute(&self.pool)
             .await?;
 
+        // Create projects table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Add project_id column to documents table if it doesn't exist
+        sqlx::query("ALTER TABLE documents ADD COLUMN project_id TEXT")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if column already exists
+
+        // Add project_id column to indexed_folders table if it doesn't exist
+        sqlx::query("ALTER TABLE indexed_folders ADD COLUMN project_id TEXT")
+            .execute(&self.pool)
+            .await
+            .ok(); // Ignore error if column already exists
+
+        // Create indexes for project_id columns
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_documents_project_id ON documents (project_id)")
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_indexed_folders_project_id ON indexed_folders (project_id)")
+            .execute(&self.pool)
+            .await?;
+
         Ok(())
     }
 
@@ -164,17 +201,19 @@ impl Database {
     }
 
     // Indexed folders CRUD
-    pub async fn upsert_indexed_folder(&self, path: &str, file_count: u32) -> Result<()> {
+    pub async fn upsert_indexed_folder(&self, path: &str, project_id: Option<&Uuid>, file_count: u32) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO indexed_folders (path, file_count, last_indexed)
-            VALUES (?, ?, ?)
+            INSERT INTO indexed_folders (path, project_id, file_count, last_indexed)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(path) DO UPDATE SET
+              project_id = excluded.project_id,
               file_count = excluded.file_count,
               last_indexed = excluded.last_indexed
             "#,
         )
         .bind(path)
+        .bind(project_id.map(|id| id.to_string()))
         .bind(file_count as i64)
         .bind(Utc::now().to_rfc3339())
         .execute(&self.pool)
@@ -182,8 +221,8 @@ impl Database {
         Ok(())
     }
 
-    pub async fn list_indexed_folders(&self) -> Result<Vec<(String, u32, Option<String>)>> {
-        let rows = sqlx::query("SELECT path, file_count, last_indexed FROM indexed_folders ORDER BY path")
+    pub async fn list_indexed_folders(&self) -> Result<Vec<serde_json::Value>> {
+        let rows = sqlx::query("SELECT path, file_count, last_indexed, project_id FROM indexed_folders ORDER BY path")
             .fetch_all(&self.pool)
             .await?;
         let mut out = Vec::new();
@@ -191,7 +230,13 @@ impl Database {
             let path: String = row.get("path");
             let file_count: i64 = row.get("file_count");
             let last_indexed: Option<String> = row.get("last_indexed");
-            out.push((path, file_count as u32, last_indexed));
+            let project_id: Option<String> = row.get("project_id");
+            out.push(serde_json::json!({
+                "path": path,
+                "file_count": file_count as u32,
+                "last_indexed": last_indexed,
+                "project_id": project_id
+            }));
         }
         Ok(out)
     }
@@ -202,6 +247,152 @@ impl Database {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    pub async fn update_folder_project(&self, path: &str, project_id: Option<&Uuid>) -> Result<bool> {
+        // First, update the folder's project_id
+        let folder_result = sqlx::query(
+            r#"
+            UPDATE indexed_folders 
+            SET project_id = ?
+            WHERE path = ?
+            "#,
+        )
+        .bind(project_id.map(|id| id.to_string()))
+        .bind(path)
+        .execute(&self.pool)
+        .await?;
+
+        if folder_result.rows_affected() == 0 {
+            return Ok(false); // Folder not found
+        }
+
+        // Then, update ALL document versions (current and historical) in this folder
+        let like_pattern = format!("{}%", path);
+        let _doc_result = sqlx::query(
+            r#"
+            UPDATE documents 
+            SET project_id = ?
+            WHERE path LIKE ?
+            "#,
+        )
+        .bind(project_id.map(|id| id.to_string()))
+        .bind(like_pattern)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(true)
+    }
+
+    // Project management methods
+    pub async fn list_projects(&self) -> Result<Vec<serde_json::Value>> {
+        let rows = sqlx::query("SELECT id, name, description, created_at, updated_at FROM projects ORDER BY name")
+            .fetch_all(&self.pool)
+            .await?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(serde_json::json!({
+                "id": row.get::<String, _>("id"),
+                "name": row.get::<String, _>("name"),
+                "description": row.get::<Option<String>, _>("description"),
+                "created_at": row.get::<String, _>("created_at"),
+                "updated_at": row.get::<String, _>("updated_at")
+            }));
+        }
+        Ok(out)
+    }
+
+    pub async fn create_project(&self, name: &str, description: Option<&str>) -> Result<serde_json::Value> {
+        let id = Uuid::new_v4();
+        let now = Utc::now();
+        
+        sqlx::query(
+            r#"
+            INSERT INTO projects (id, name, description, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(id.to_string())
+        .bind(name)
+        .bind(description)
+        .bind(now.to_rfc3339())
+        .bind(now.to_rfc3339())
+        .execute(&self.pool)
+        .await?;
+
+        Ok(serde_json::json!({
+            "id": id.to_string(),
+            "name": name,
+            "description": description,
+            "created_at": now.to_rfc3339(),
+            "updated_at": now.to_rfc3339()
+        }))
+    }
+
+    pub async fn update_project(&self, id: &Uuid, name: Option<&str>, description: Option<&str>) -> Result<Option<serde_json::Value>> {
+        let now = Utc::now();
+        
+        // Update name if provided
+        if let Some(name) = name {
+            sqlx::query("UPDATE projects SET name = ?, updated_at = ? WHERE id = ?")
+                .bind(name)
+                .bind(now.to_rfc3339())
+                .bind(id.to_string())
+                .execute(&self.pool)
+                .await?;
+        }
+
+        // Update description if provided
+        if let Some(description) = description {
+            sqlx::query("UPDATE projects SET description = ?, updated_at = ? WHERE id = ?")
+                .bind(description)
+                .bind(now.to_rfc3339())
+                .bind(id.to_string())
+                .execute(&self.pool)
+                .await?;
+        }
+
+        // Get updated project
+        let row = sqlx::query("SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?")
+            .bind(id.to_string())
+            .fetch_optional(&self.pool)
+            .await?;
+
+        if let Some(row) = row {
+            Ok(Some(serde_json::json!({
+                "id": row.get::<String, _>("id"),
+                "name": row.get::<String, _>("name"),
+                "description": row.get::<Option<String>, _>("description"),
+                "created_at": row.get::<String, _>("created_at"),
+                "updated_at": row.get::<String, _>("updated_at")
+            })))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn delete_project(&self, id: &Uuid) -> Result<bool> {
+        // Check if project has associated documents or folders
+        let doc_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM documents WHERE project_id = ?")
+            .bind(id.to_string())
+            .fetch_one(&self.pool)
+            .await?;
+
+        let folder_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM indexed_folders WHERE project_id = ?")
+            .bind(id.to_string())
+            .fetch_one(&self.pool)
+            .await?;
+
+        if doc_count > 0 || folder_count > 0 {
+            return Ok(false); // Cannot delete project with associated data
+        }
+
+        let result = sqlx::query("DELETE FROM projects WHERE id = ?")
+            .bind(id.to_string())
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
     }
 
     // Folder purge: delete documents under a folder and their index entries
@@ -237,8 +428,8 @@ impl Database {
         sqlx::query(
             r#"
             INSERT INTO documents 
-            (id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest, project_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(document.id.to_string())
@@ -255,6 +446,7 @@ impl Database {
         .bind(document.indexed_at.to_rfc3339())
         .bind(document.version as i64)
         .bind(document.is_latest)
+        .bind(document.project_id.map(|id| id.to_string()))
         .execute(&self.pool)
         .await?;
 
@@ -291,36 +483,80 @@ impl Database {
         offset: u32,
         include_historical: bool,
     ) -> Result<Vec<Document>> {
-        let where_clause = if include_historical {
+        self.search_documents_with_filters(query, limit, offset, include_historical, None).await
+    }
+
+    pub async fn search_documents_with_filters(
+        &self,
+        query: &str,
+        limit: u32,
+        offset: u32,
+        include_historical: bool,
+        project_ids: Option<&[Uuid]>,
+    ) -> Result<Vec<Document>> {
+        let base_where_clause = if include_historical {
             "d.filename LIKE ? OR d.content_excerpt LIKE ? OR d.title LIKE ? OR ie.chunk_text LIKE ?"
         } else {
             "d.is_latest = 1 AND (d.filename LIKE ? OR d.content_excerpt LIKE ? OR d.title LIKE ? OR ie.chunk_text LIKE ?)"
         };
 
-        let documents = sqlx::query(&format!(
+        // Add project filtering if specified
+        let final_where_clause = if let Some(project_ids) = project_ids {
+            if !project_ids.is_empty() {
+                format!("({}) AND d.project_id IN ({})", 
+                    base_where_clause, 
+                    project_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",")
+                )
+            } else {
+                base_where_clause.to_string()
+            }
+        } else {
+            base_where_clause.to_string()
+        };
+
+        let query_str = format!(
             r#"
-            SELECT DISTINCT d.id, d.path, d.filename, d.extension, d.size, d.modified_at, d.title, d.tags, d.headings, d.content_excerpt, d.content_hash, d.indexed_at, d.version, d.is_latest
+            SELECT DISTINCT d.id, d.path, d.filename, d.extension, d.size, d.modified_at, d.title, d.tags, d.headings, d.content_excerpt, d.content_hash, d.indexed_at, d.version, d.is_latest, d.project_id
             FROM documents d
             LEFT JOIN index_entries ie ON d.id = ie.document_id
             WHERE {}
             ORDER BY d.modified_at DESC
             LIMIT ? OFFSET ?
             "#,
-            where_clause
-        ))
-        .bind(format!("%{}%", query))
-        .bind(format!("%{}%", query))
-        .bind(format!("%{}%", query))
-        .bind(format!("%{}%", query))
-        .bind(limit as i64)
-        .bind(offset as i64)
-        .fetch_all(&self.pool)
-        .await?;
+            final_where_clause
+        );
+
+        let mut query_builder = sqlx::query(&query_str);
+
+        // Bind the search query parameters
+        query_builder = query_builder
+            .bind(format!("%{}%", query))
+            .bind(format!("%{}%", query))
+            .bind(format!("%{}%", query))
+            .bind(format!("%{}%", query));
+
+        // Bind project IDs if specified
+        if let Some(project_ids) = project_ids {
+            if !project_ids.is_empty() {
+                for project_id in project_ids {
+                    query_builder = query_builder.bind(project_id.to_string());
+                }
+            }
+        }
+
+        // Bind limit and offset
+        query_builder = query_builder
+            .bind(limit as i64)
+            .bind(offset as i64);
+
+        let documents = query_builder.fetch_all(&self.pool).await?;
 
         let mut results = Vec::new();
         for row in documents {
             let tags: String = row.get("tags");
             let headings: String = row.get("headings");
+            let project_id_str: Option<String> = row.get("project_id");
+            let project_id = project_id_str.and_then(|s| Uuid::parse_str(&s).ok());
             
             results.push(Document {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
@@ -337,6 +573,7 @@ impl Database {
                 indexed_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("indexed_at"))?.into(),
                 version: row.get::<i64, _>("version") as u32,
                 is_latest: row.get::<i64, _>("is_latest") != 0,
+                project_id,
             });
         }
 
@@ -346,7 +583,7 @@ impl Database {
     pub async fn get_document_by_id(&self, id: &Uuid) -> Result<Option<Document>> {
         let row = sqlx::query(
             r#"
-            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest
+            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest, project_id
             FROM documents
             WHERE id = ?
             "#,
@@ -358,6 +595,8 @@ impl Database {
         if let Some(row) = row {
             let tags: String = row.get("tags");
             let headings: String = row.get("headings");
+            let project_id_str: Option<String> = row.get("project_id");
+            let project_id = project_id_str.and_then(|s| Uuid::parse_str(&s).ok());
             
             Ok(Some(Document {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
@@ -374,6 +613,7 @@ impl Database {
                 indexed_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("indexed_at"))?.into(),
                 version: row.get::<i64, _>("version") as u32,
                 is_latest: row.get::<i64, _>("is_latest") != 0,
+                project_id,
             }))
         } else {
             Ok(None)
@@ -383,7 +623,7 @@ impl Database {
     pub async fn get_document_by_path(&self, path: &PathBuf) -> Result<Option<Document>> {
         let row = sqlx::query(
             r#"
-            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest
+            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest, project_id
             FROM documents
             WHERE path = ?
             "#,
@@ -395,6 +635,8 @@ impl Database {
         if let Some(row) = row {
             let tags: String = row.get("tags");
             let headings: String = row.get("headings");
+            let project_id_str: Option<String> = row.get("project_id");
+            let project_id = project_id_str.and_then(|s| Uuid::parse_str(&s).ok());
             
             Ok(Some(Document {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
@@ -411,6 +653,7 @@ impl Database {
                 indexed_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("indexed_at"))?.into(),
                 version: row.get::<i64, _>("version") as u32,
                 is_latest: row.get::<i64, _>("is_latest") != 0,
+                project_id,
             }))
         } else {
             Ok(None)
@@ -465,7 +708,7 @@ impl Database {
     pub async fn get_document_versions(&self, path: &PathBuf) -> Result<Vec<Document>> {
         let rows = sqlx::query(
             r#"
-            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest
+            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest, project_id
             FROM documents
             WHERE path = ?
             ORDER BY version DESC
@@ -479,6 +722,8 @@ impl Database {
         for row in rows {
             let tags: String = row.get("tags");
             let headings: String = row.get("headings");
+            let project_id_str: Option<String> = row.get("project_id");
+            let project_id = project_id_str.and_then(|s| Uuid::parse_str(&s).ok());
             
             results.push(Document {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
@@ -495,6 +740,7 @@ impl Database {
                 indexed_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("indexed_at"))?.into(),
                 version: row.get::<i64, _>("version") as u32,
                 is_latest: row.get::<i64, _>("is_latest") != 0,
+                project_id,
             });
         }
 
@@ -504,7 +750,7 @@ impl Database {
     pub async fn get_latest_document_version(&self, path: &PathBuf) -> Result<Option<Document>> {
         let row = sqlx::query(
             r#"
-            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest
+            SELECT id, path, filename, extension, size, modified_at, title, tags, headings, content_excerpt, content_hash, indexed_at, version, is_latest, project_id
             FROM documents
             WHERE path = ? AND is_latest = 1
             "#,
@@ -516,6 +762,8 @@ impl Database {
         if let Some(row) = row {
             let tags: String = row.get("tags");
             let headings: String = row.get("headings");
+            let project_id_str: Option<String> = row.get("project_id");
+            let project_id = project_id_str.and_then(|s| Uuid::parse_str(&s).ok());
             
             Ok(Some(Document {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
@@ -532,6 +780,7 @@ impl Database {
                 indexed_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("indexed_at"))?.into(),
                 version: row.get::<i64, _>("version") as u32,
                 is_latest: row.get::<i64, _>("is_latest") != 0,
+                project_id,
             }))
         } else {
             Ok(None)

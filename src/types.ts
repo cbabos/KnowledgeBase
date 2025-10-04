@@ -4,6 +4,21 @@ export interface MCPTool {
   input_schema: any;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IndexedFolder {
+  path: string;
+  project_id?: string;
+  file_count: number;
+  last_indexed?: string;
+}
+
 export interface Document {
   id: string;
   path: string;
@@ -19,6 +34,7 @@ export interface Document {
   indexed_at: string;
   version: number;
   is_latest: boolean;
+  project_id?: string;
 }
 
 export interface Snippet {
@@ -38,6 +54,7 @@ export interface SearchFilters {
   file_types?: string[];
   folders?: string[];
   tags?: string[];
+  project_ids?: string[];
 }
 
 export interface MCPRequest {

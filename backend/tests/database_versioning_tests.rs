@@ -20,6 +20,7 @@ fn make_document(path: &str, version: u32, is_latest: bool) -> Document {
         indexed_at: Utc.timestamp_opt(1_700_000_100, 0).unwrap(),
         version,
         is_latest,
+        project_id: None,
     }
 }
 

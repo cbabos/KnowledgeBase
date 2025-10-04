@@ -1,22 +1,36 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FolderPlus, Database, CheckCircle, AlertCircle, XCircle, RefreshCw } from 'lucide-react';
-import { IndexingResult } from '../types';
+import { FolderPlus, Database, CheckCircle, AlertCircle, XCircle, RefreshCw, Edit3 } from 'lucide-react';
+import { IndexingResult, Project } from '../types';
 
-const IndexingInterface: React.FC = () => {
+interface IndexingInterfaceProps {
+  projects: Project[];
+}
+
+const IndexingInterface: React.FC<IndexingInterfaceProps> = ({ projects }) => {
   const [folders, setFolders] = useState<string[]>([]);
   const foldersRef = useRef<string[]>([]);
   const [newFolder, setNewFolder] = useState('');
+  const [selectedProject, setSelectedProject] = useState<string>('');
   const [isIndexing, setIsIndexing] = useState(false);
   const [indexingResult, setIndexingResult] = useState<IndexingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [indexedFolders, setIndexedFolders] = useState<Array<{ path: string; file_count: number; last_indexed?: string }>>([]);
+  const [indexedFolders, setIndexedFolders] = useState<Array<{ path: string; file_count: number; last_indexed?: string; project_id?: string }>>([]);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<{ path: string; project_id?: string } | null>(null);
+  const [newProjectId, setNewProjectId] = useState<string>('');
+
 
   const loadIndexedFolders = async () => {
     try {
       const res = await fetch('/api/index/folders');
       const data = await res.json();
       if (data.success) {
-        setIndexedFolders((data.folders || []).map((t: any) => ({ path: t[0], file_count: t[1], last_indexed: t[2] })));
+        setIndexedFolders((data.folders || []).map((folder: any) => ({ 
+          path: folder.path, 
+          file_count: folder.file_count, 
+          last_indexed: folder.last_indexed,
+          project_id: folder.project_id
+        })));
       }
     } catch {}
   };
@@ -27,7 +41,7 @@ const IndexingInterface: React.FC = () => {
 
   const addFolder = () => {
     const trimmed = newFolder.trim();
-    if (trimmed && !foldersRef.current.includes(trimmed)) {
+    if (trimmed && !foldersRef.current.includes(trimmed) && selectedProject) {
       setFolders(prev => {
         const updated = [...prev, trimmed];
         foldersRef.current = updated;
@@ -45,21 +59,15 @@ const IndexingInterface: React.FC = () => {
     });
   };
 
-  const startIndexing = async (paths?: string[]) => {
-    const base = (paths && paths.length ? paths : foldersRef.current);
-    const foldersToIndex = base.map(f => f.trim()).filter(Boolean);
-    if (foldersToIndex.length === 0) {
-      setError('Please add at least one folder to index');
-      return;
-    }
-
+  const reindexFolder = async (folderPath: string, projectId?: string) => {
     setIsIndexing(true);
     setError(null);
     setIndexingResult(null);
 
     try {
       const request = {
-        folders: foldersToIndex,
+        folders: [folderPath],
+        project_id: projectId || null,
       };
 
       const response = await fetch('/api/index', {
@@ -73,12 +81,59 @@ const IndexingInterface: React.FC = () => {
       const data = await response.json();
       if (data.success) {
         setIndexingResult(data.result);
+        await loadIndexedFolders();
       } else {
-        setError(data.message || 'Indexing failed');
+        setError(data.error || 'Reindexing failed');
       }
     } catch (error) {
-      setError('Network error occurred');
-      console.error('Indexing error:', error);
+      setError('Failed to reindex folder');
+      console.error('Reindexing error:', error);
+    } finally {
+      setIsIndexing(false);
+    }
+  };
+
+  const startIndexing = async (paths?: string[]) => {
+    const base = (paths && paths.length ? paths : foldersRef.current);
+    const foldersToIndex = base.map(f => f.trim()).filter(Boolean);
+    if (foldersToIndex.length === 0) {
+      setError('Please add at least one folder to index');
+      return;
+    }
+
+    if (!selectedProject) {
+      setError('Please select a project before indexing');
+      return;
+    }
+
+    setIsIndexing(true);
+    setError(null);
+    setIndexingResult(null);
+
+    try {
+      const request = {
+        folders: foldersToIndex,
+        project_id: selectedProject,
+      };
+
+      const response = await fetch('/api/index', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIndexingResult(data.result);
+        await loadIndexedFolders();
+      } else {
+        setError(data.error || 'Indexing failed');
+      }
+    } catch (err) {
+      setError('Failed to start indexing');
+      console.error('Indexing error:', err);
     } finally {
       setIsIndexing(false);
     }
@@ -106,6 +161,41 @@ const IndexingInterface: React.FC = () => {
     }
   };
 
+  const handleReassignProject = async () => {
+    if (!selectedFolder) return;
+
+    try {
+      const response = await fetch(`/api/index/folders?path=${encodeURIComponent(selectedFolder.path)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: newProjectId || null,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        await loadIndexedFolders();
+        setShowReassignModal(false);
+        setSelectedFolder(null);
+        setNewProjectId('');
+      } else {
+        setError(data.error || 'Failed to reassign project');
+      }
+    } catch (err) {
+      setError('Failed to reassign project');
+      console.error('Reassign error:', err);
+    }
+  };
+
+  const openReassignModal = (folder: { path: string; project_id?: string }) => {
+    setSelectedFolder(folder);
+    setNewProjectId(folder.project_id || '');
+    setShowReassignModal(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Folder Management */}
@@ -115,6 +205,30 @@ const IndexingInterface: React.FC = () => {
         </h2>
         
         <div className="space-y-4">
+          {/* Project Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Project *
+            </label>
+            <select
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">Choose a project...</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            {projects.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                No projects available. Create a project first in the Projects tab.
+              </p>
+            )}
+          </div>
+
           {/* Add Folder */}
           <div className="flex items-center space-x-4">
             <div className="flex-1">
@@ -125,11 +239,12 @@ const IndexingInterface: React.FC = () => {
                 onKeyPress={(e) => e.key === 'Enter' && addFolder()}
                 placeholder="Enter folder path (e.g., /Users/username/notes)"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                disabled={!selectedProject}
               />
             </div>
             <button
               onClick={addFolder}
-              disabled={!newFolder.trim()}
+              disabled={!newFolder.trim() || !selectedProject}
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
             >
               <FolderPlus className="h-4 w-4 mr-2" />
@@ -173,7 +288,7 @@ const IndexingInterface: React.FC = () => {
         <div className="flex items-center space-x-4">
           <button
             onClick={() => startIndexing()}
-            disabled={isIndexing || folders.length === 0}
+            disabled={isIndexing || folders.length === 0 || !selectedProject}
             className="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
           >
             {isIndexing ? (
@@ -215,21 +330,33 @@ const IndexingInterface: React.FC = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400">No folders indexed yet.</p>
         ) : (
           <div className="space-y-2">
-            {indexedFolders.map((f, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div>
-                  <div className="text-sm text-gray-900 dark:text-gray-100 font-mono">{f.path}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Files: {f.file_count} {f.last_indexed ? `• Last indexed: ${new Date(f.last_indexed).toLocaleString()}` : ''}</div>
-                </div>
+            {indexedFolders.map((f, i) => {
+              const project = projects.find(p => p.id === f.project_id);
+              return (
+                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100 font-mono">{f.path}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Files: {f.file_count} 
+                      {project && ` • Project: ${project.name}`}
+                      {f.last_indexed ? ` • Last indexed: ${new Date(f.last_indexed).toLocaleString()}` : ''}
+                    </div>
+                  </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={async () => {
-                      await startIndexing([f.path]);
-                      await loadIndexedFolders();
+                      await reindexFolder(f.path, f.project_id);
                     }}
                     className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500"
                   >
                     Reindex
+                  </button>
+                  <button
+                    onClick={() => openReassignModal(f)}
+                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center"
+                  >
+                    <Edit3 className="h-3 w-3 mr-1" />
+                    Change Project
                   </button>
                   <button
                     onClick={async () => {
@@ -244,7 +371,8 @@ const IndexingInterface: React.FC = () => {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -338,6 +466,60 @@ const IndexingInterface: React.FC = () => {
           <li>• Re-index when you add or modify files in your folders</li>
         </ul>
       </div>
+
+      {/* Reassign Project Modal */}
+      {showReassignModal && selectedFolder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Change Project Assignment
+            </h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Folder: <span className="font-mono text-xs">{selectedFolder.path}</span>
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Assign to Project
+              </label>
+              <select
+                value={newProjectId}
+                onChange={(e) => setNewProjectId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">No Project (Unassigned)</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowReassignModal(false);
+                  setSelectedFolder(null);
+                  setNewProjectId('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReassignProject}
+                className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
+              >
+                Update Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

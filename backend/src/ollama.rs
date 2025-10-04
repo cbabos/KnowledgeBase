@@ -100,7 +100,7 @@ impl OllamaClient {
 
     pub async fn answer_question(&self, question: &str, context: &str) -> Result<String> {
         let prompt = format!(
-            "Based on the following context, please answer the question. If the answer cannot be found in the context, please say so clearly.\n\nContext:\n{}\n\nQuestion: {}\n\nAnswer:",
+            "Based on the following context, please answer the question in Markdown format. Use proper Markdown formatting including headers, lists, code blocks, and emphasis where appropriate. If the answer cannot be found in the context, please say so clearly.\n\nContext:\n{}\n\nQuestion: {}\n\nAnswer (in Markdown):",
             context,
             question
         );
@@ -108,7 +108,7 @@ impl OllamaClient {
         let options = OllamaOptions {
             temperature: Some(0.2),
             top_p: Some(0.8),
-            max_tokens: Some(800),
+            max_tokens: Some(1200),
         };
 
         self.generate(&prompt, Some(options)).await

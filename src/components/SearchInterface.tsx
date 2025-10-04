@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, FileText, Calendar, Tag, Folder, History } from 'lucide-react';
-import { MCPTool, SearchResult, SearchFilters, Document } from '../types';
+import { MCPTool, SearchResult, SearchFilters, Document, Project } from '../types';
 import VersionHistoryInterface from './VersionHistoryInterface';
 import { marked } from 'marked';
 
 interface SearchInterfaceProps {
   tools: MCPTool[];
+  projects: Project[];
 }
 
-const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
+const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools, projects }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +26,8 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
 
     setIsLoading(true);
     try {
+      const searchFilters = { ...filters };
+
       const request: any = {
         tool: 'search_notes',
         arguments: {
@@ -35,8 +38,8 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
         },
       };
 
-      if (Object.keys(filters).length > 0) {
-        request.arguments.filters = filters;
+      if (Object.keys(searchFilters).length > 0) {
+        request.arguments.filters = searchFilters;
       }
 
       const response = await fetch('/api/request', {
@@ -175,6 +178,30 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ tools }) => {
                   Include historical versions
                 </span>
               </label>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Project
+              </label>
+              <select
+                value={filters.project_ids?.[0] || ''}
+                onChange={(e) => {
+                  const projectId = e.target.value;
+                  setFilters({
+                    ...filters,
+                    project_ids: projectId ? [projectId] : undefined
+                  });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">All Projects</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>

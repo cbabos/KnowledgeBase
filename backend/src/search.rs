@@ -1,6 +1,7 @@
 use anyhow::Result;
 use crate::database::{Database, Document, IndexEntry};
 use regex::Regex;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SearchResult {
@@ -24,6 +25,7 @@ pub struct SearchFilters {
     pub date_from: Option<chrono::DateTime<chrono::Utc>>,
     pub date_to: Option<chrono::DateTime<chrono::Utc>>,
     pub tags: Option<Vec<String>>,
+    pub project_ids: Option<Vec<uuid::Uuid>>,
 }
 
 #[derive(Clone)]
@@ -47,8 +49,9 @@ impl SearchEngine {
         // Parse query for AND/OR operations and quoted phrases
         let parsed_query = self.parse_query(query);
         
-        // Get all documents that match the basic text search
-        let documents = self.db.search_documents(query, 1000, 0, include_historical).await?;
+        // Get all documents that match the basic text search with project filtering
+        let project_ids = filters.as_ref().and_then(|f| f.project_ids.as_ref());
+        let documents = self.db.search_documents_with_filters(query, 1000, 0, include_historical, project_ids.map(|ids| ids.as_slice())).await?;
         
         // Apply filters
         let filtered_documents = if let Some(filters) = filters {
@@ -154,6 +157,8 @@ impl SearchEngine {
                 tags.iter().any(|tag| doc.tags.iter().any(|doc_tag| doc_tag.eq_ignore_ascii_case(tag)))
             });
         }
+
+        // Note: Project filtering is handled at the database level for better performance
 
         Ok(filtered)
     }
@@ -306,6 +311,15 @@ impl SearchEngine {
         question: &str,
         top_k: u32,
     ) -> Result<Vec<(Document, IndexEntry)>> {
+        self.get_relevant_chunks_for_qa_with_filters(question, top_k, None).await
+    }
+
+    pub async fn get_relevant_chunks_for_qa_with_filters(
+        &self,
+        question: &str,
+        top_k: u32,
+        project_ids: Option<&[Uuid]>,
+    ) -> Result<Vec<(Document, IndexEntry)>> {
         // Extract keywords from the question (remove common words and punctuation)
         let keywords = self.extract_keywords_from_question(question);
         
@@ -316,7 +330,19 @@ impl SearchEngine {
         // Search for each keyword and collect results
         let mut all_chunks = Vec::new();
         for keyword in keywords {
-            let search_results = self.search(&keyword, None, top_k * 2, 0, false).await?;
+            let filters = if let Some(project_ids) = project_ids {
+                Some(SearchFilters {
+                    file_types: None,
+                    folders: None,
+                    date_from: None,
+                    date_to: None,
+                    tags: None,
+                    project_ids: Some(project_ids.to_vec()),
+                })
+            } else {
+                None
+            };
+            let search_results = self.search(&keyword, filters, top_k * 2, 0, false).await?;
             
             for result in search_results {
                 let index_entries = self.db.get_index_entries_for_document(&result.document.id).await?;

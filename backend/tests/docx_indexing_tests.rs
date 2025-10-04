@@ -22,7 +22,7 @@ async fn docx_is_recognized_and_converted_when_pandoc_missing() {
         zip.finish().unwrap();
     }
 
-    let res = corpus.index_folder(temp_dir.path()).await.unwrap();
+    let res = corpus.index_folder(temp_dir.path(), None).await.unwrap();
     assert_eq!(res.files_processed, 1);
 }
 

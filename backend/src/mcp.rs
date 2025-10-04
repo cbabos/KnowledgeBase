@@ -81,7 +81,8 @@ impl MCPServer {
                             "properties": {
                                 "file_types": {"type": "array", "items": {"type": "string"}},
                                 "folders": {"type": "array", "items": {"type": "string"}},
-                                "tags": {"type": "array", "items": {"type": "string"}}
+                                "tags": {"type": "array", "items": {"type": "string"}},
+                                "project_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}}
                             }
                         }
                     },
@@ -107,7 +108,8 @@ impl MCPServer {
                     "type": "object",
                     "properties": {
                         "question": {"type": "string"},
-                        "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}
+                        "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5},
+                        "project_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}}
                     },
                     "required": ["question"]
                 }),
@@ -321,8 +323,19 @@ impl MCPServer {
 
         let top_k = args.get("top_k").and_then(|v| v.as_u64()).unwrap_or(5) as u32;
 
-        // Get relevant chunks
-        let chunks = self.search_engine.get_relevant_chunks_for_qa(question, top_k).await?;
+        // Extract project_ids if provided
+        let project_ids = args.get("project_ids")
+            .and_then(|v| v.as_array())
+            .and_then(|arr| {
+                let parsed_ids: Result<Vec<Uuid>, _> = arr.iter()
+                    .filter_map(|v| v.as_str())
+                    .map(|s| Uuid::parse_str(s))
+                    .collect();
+                parsed_ids.ok()
+            });
+
+        // Get relevant chunks with project filtering
+        let chunks = self.search_engine.get_relevant_chunks_for_qa_with_filters(question, top_k, project_ids.as_ref().map(|ids| ids.as_slice())).await?;
         
         if chunks.is_empty() {
             return Ok(MCPResponse {
@@ -603,11 +616,22 @@ fn parse_search_filters(filters_value: &serde_json::Value) -> Result<crate::sear
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect());
 
+    let project_ids = filters_value.get("project_ids")
+        .and_then(|v| v.as_array())
+        .and_then(|arr| {
+            let parsed_ids: Result<Vec<Uuid>, _> = arr.iter()
+                .filter_map(|v| v.as_str())
+                .map(|s| Uuid::parse_str(s))
+                .collect();
+            parsed_ids.ok()
+        });
+
     Ok(crate::search::SearchFilters {
         file_types,
         folders,
         date_from: None,
         date_to: None,
         tags,
+        project_ids,
     })
 }

@@ -6,11 +6,13 @@ use crate::ollama::OllamaClient;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::path::PathBuf;
+use uuid::Uuid;
 use warp::Filter;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndexRequest {
     pub folders: Vec<PathBuf>,
+    pub project_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,7 +85,7 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                             move |request: IndexRequest| {
                                 let db = db.clone();
                                 async move {
-                                    match index_folders(db, request.folders).await {
+                                    match index_folders(db, request.folders, request.project_id).await {
                                         Ok(result) => Ok::<_, Infallible>(warp::reply::json(&IndexResponse {
                                             success: true,
                                             message: "Indexing completed".to_string(),
@@ -141,8 +143,189 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                             }
                         });
 
-                    index_post.or(index_list).or(index_remove)
+                    let index_update_project = warp::path!("index" / "folders")
+                        .and(warp::put())
+                        .and(warp::query::<std::collections::HashMap<String, String>>())
+                        .and(warp::body::json())
+                        .and_then({
+                            let db = db.clone();
+                            move |params: std::collections::HashMap<String, String>, request: serde_json::Value| {
+                                let db = db.clone();
+                                async move {
+                                    let path = match params.get("path") {
+                                        Some(p) => p,
+                                        None => {
+                                            return Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                "success": false,
+                                                "error": "Missing path parameter"
+                                            })));
+                                        }
+                                    };
+                                    
+                                    let project_id = request.get("project_id")
+                                        .and_then(|v| v.as_str())
+                                        .and_then(|s| Uuid::parse_str(s).ok());
+                                    
+                                    match db.update_folder_project(path, project_id.as_ref()).await {
+                                        Ok(true) => Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                            "success": true,
+                                            "message": "Folder project updated successfully"
+                                        }))),
+                                        Ok(false) => Ok(warp::reply::json(&serde_json::json!({
+                                            "success": false,
+                                            "error": "Folder not found"
+                                        }))),
+                                        Err(e) => Ok(warp::reply::json(&serde_json::json!({
+                                            "success": false,
+                                            "error": e.to_string()
+                                        }))),
+                                    }
+                                }
+                            }
+                        });
+
+                    index_post.or(index_list).or(index_remove).or(index_update_project)
                 })
+                .or(
+                    // Project management endpoints
+                    warp::path("projects")
+                        .and(
+                            // GET /api/projects - List all projects
+                            warp::get()
+                                .and_then({
+                                    let db = db.clone();
+                                    move || {
+                                        let db = db.clone();
+                                        async move {
+                                            match db.list_projects().await {
+                                                Ok(projects) => Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                    "success": true,
+                                                    "projects": projects
+                                                }))),
+                                                Err(e) => Ok(warp::reply::json(&serde_json::json!({
+                                                    "success": false,
+                                                    "error": e.to_string()
+                                                }))),
+                                            }
+                                        }
+                                    }
+                                })
+                                .or(
+                                    // POST /api/projects - Create new project
+                                    warp::post()
+                                        .and(warp::body::json())
+                                        .and_then({
+                                            let db = db.clone();
+                                            move |request: serde_json::Value| {
+                                                let db = db.clone();
+                                                async move {
+                                                    let name = match request.get("name")
+                                                        .and_then(|v| v.as_str()) {
+                                                        Some(name) => name,
+                                                        None => {
+                                                            return Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                                "success": false,
+                                                                "error": "Missing required field: name"
+                                                            })));
+                                                        }
+                                                    };
+                                                    let description = request.get("description")
+                                                        .and_then(|v| v.as_str());
+                                                    
+                                                    match db.create_project(name, description).await {
+                                                        Ok(project) => Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                            "success": true,
+                                                            "project": project
+                                                        }))),
+                                                        Err(e) => Ok(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": e.to_string()
+                                                        }))),
+                                                    }
+                                                }
+                                            }
+                                        })
+                                )
+                                .or(
+                                    // PUT /api/projects/{id} - Update project
+                                    warp::put()
+                                        .and(warp::path::param::<String>())
+                                        .and(warp::body::json())
+                                        .and_then({
+                                            let db = db.clone();
+                                            move |id_str: String, request: serde_json::Value| {
+                                                let db = db.clone();
+                                                async move {
+                                                    let id = match Uuid::parse_str(&id_str) {
+                                                        Ok(id) => id,
+                                                        Err(e) => {
+                                                            return Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                                "success": false,
+                                                                "error": format!("Invalid project ID: {}", e)
+                                                            })));
+                                                        }
+                                                    };
+                                                    
+                                                    let name = request.get("name").and_then(|v| v.as_str());
+                                                    let description = request.get("description").and_then(|v| v.as_str());
+                                                    
+                                                    match db.update_project(&id, name, description).await {
+                                                        Ok(Some(project)) => Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                            "success": true,
+                                                            "project": project
+                                                        }))),
+                                                        Ok(None) => Ok(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": "Project not found"
+                                                        }))),
+                                                        Err(e) => Ok(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": e.to_string()
+                                                        }))),
+                                                    }
+                                                }
+                                            }
+                                        })
+                                )
+                                .or(
+                                    // DELETE /api/projects/{id} - Delete project
+                                    warp::delete()
+                                        .and(warp::path::param::<String>())
+                                        .and_then({
+                                            let db = db.clone();
+                                            move |id_str: String| {
+                                                let db = db.clone();
+                                                async move {
+                                                    let id = match Uuid::parse_str(&id_str) {
+                                                        Ok(id) => id,
+                                                        Err(e) => {
+                                                            return Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                                "success": false,
+                                                                "error": format!("Invalid project ID: {}", e)
+                                                            })));
+                                                        }
+                                                    };
+                                                    
+                                                    match db.delete_project(&id).await {
+                                                        Ok(true) => Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                            "success": true,
+                                                            "message": "Project deleted successfully"
+                                                        }))),
+                                                        Ok(false) => Ok(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": "Cannot delete project with associated documents or folders"
+                                                        }))),
+                                                        Err(e) => Ok(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": e.to_string()
+                                                        }))),
+                                                    }
+                                                }
+                                            }
+                                        })
+                                )
+                        )
+                )
                 .or(
                     // Health check
                     warp::path("health")
@@ -197,7 +380,7 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
     Ok(())
 }
 
-async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<crate::corpus::IndexingResult> {
+async fn index_folders(db: Database, folders: Vec<PathBuf>, project_id: Option<Uuid>) -> Result<crate::corpus::IndexingResult> {
     let mut total_result = crate::corpus::IndexingResult {
         files_processed: 0,
         files_skipped: 0,
@@ -217,7 +400,7 @@ async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<crate::cor
 
     for raw in folders {
         // Normalize: trim and canonicalize if possible
-        let mut path_str = raw.to_string_lossy().trim().to_string();
+        let path_str = raw.to_string_lossy().trim().to_string();
         let normalized = std::path::PathBuf::from(&path_str);
         let folder = match std::fs::canonicalize(&normalized) {
             Ok(abs) => abs,
@@ -229,7 +412,7 @@ async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<crate::cor
             continue;
         }
 
-        match corpus_manager.index_folder(&folder).await {
+        match corpus_manager.index_folder(&folder, project_id.as_ref()).await {
             Ok(result) => {
                 total_result.files_processed += result.files_processed;
                 total_result.files_skipped += result.files_skipped;
@@ -237,7 +420,7 @@ async fn index_folders(db: Database, folders: Vec<PathBuf>) -> Result<crate::cor
                 total_result.errors.extend(result.errors);
                 // Upsert folder stats
                 let file_count = result.files_processed + result.files_skipped + result.files_failed;
-                let _ = db.upsert_indexed_folder(&folder.to_string_lossy(), file_count).await;
+                let _ = db.upsert_indexed_folder(&folder.to_string_lossy(), project_id.as_ref(), file_count).await;
             }
             Err(e) => {
                 total_result.errors.push(format!("Failed to index folder {}: {}", folder.display(), e));

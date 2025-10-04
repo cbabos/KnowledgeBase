@@ -61,7 +61,7 @@ impl CorpusManager {
         Self { db, exclusions }
     }
 
-    pub async fn index_folder(&self, folder_path: &Path) -> Result<IndexingResult> {
+    pub async fn index_folder(&self, folder_path: &Path, project_id: Option<&Uuid>) -> Result<IndexingResult> {
         let mut result = IndexingResult {
             files_processed: 0,
             files_skipped: 0,
@@ -88,7 +88,7 @@ impl CorpusManager {
                 continue;
             }
 
-            match self.index_file(path).await {
+            match self.index_file(path, project_id).await {
                 Ok(_) => result.files_processed += 1,
                 Err(e) => {
                     result.files_failed += 1;
@@ -100,7 +100,7 @@ impl CorpusManager {
         Ok(result)
     }
 
-    async fn index_file(&self, path: &Path) -> Result<()> {
+    async fn index_file(&self, path: &Path, project_id: Option<&Uuid>) -> Result<()> {
         let metadata = fs::metadata(path)?;
         let modified_at = metadata.modified()?.into();
         let size = metadata.len();
@@ -120,10 +120,13 @@ impl CorpusManager {
         };
         let content_hash = self.compute_hash(&content);
 
-        // Check if file has changed
+        // Check if file has changed or if project assignment has changed
         if let Some(existing_doc) = self.db.get_latest_document_version(&path.to_path_buf()).await? {
-            if existing_doc.content_hash == content_hash {
-                return Ok(()); // File hasn't changed
+            let content_unchanged = existing_doc.content_hash == content_hash;
+            let project_unchanged = existing_doc.project_id == project_id.cloned();
+            
+            if content_unchanged && project_unchanged {
+                return Ok(()); // File and project assignment haven't changed
             }
         }
 
@@ -154,6 +157,7 @@ impl CorpusManager {
             indexed_at: Utc::now(),
             version,
             is_latest: true,
+            project_id: project_id.cloned(),
         };
 
         // Insert document

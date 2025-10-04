@@ -1,20 +1,33 @@
 import React, { useState } from 'react';
-import { MessageSquare, Send, FileText, ExternalLink, AlertCircle, Search } from 'lucide-react';
-import { MCPTool, QAAnswer, Citation } from '../types';
+import { MessageSquare, Send, FileText, ExternalLink, AlertCircle, Search, Copy, Check, Folder, ChevronDown } from 'lucide-react';
+import { MCPTool, QAAnswer, Citation, Project } from '../types';
 import DocumentViewerModal from './DocumentViewerModal';
+import { marked } from 'marked';
 
 interface QnAInterfaceProps {
   tools: MCPTool[];
+  projects: Project[];
   onSwitchToSearch?: () => void;
 }
 
-const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) => {
+const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, projects, onSwitchToSearch }) => {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<QAAnswer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCitations, setShowCitations] = useState(false);
   const [viewer, setViewer] = useState<{ id: string; filename: string; path: string; used?: number; latest?: number; isLatest?: boolean } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
+
+  const copyAnswer = async () => {
+    if (answer) {
+      await navigator.clipboard.writeText(answer.answer);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const askQuestion = async () => {
     if (!question.trim()) return;
@@ -22,15 +35,20 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) 
     setIsLoading(true);
     setError(null);
     setAnswer(null);
+    setCopied(false);
 
     try {
-      const request = {
+      const request: any = {
         tool: 'answer_question',
         arguments: {
           question: question.trim(),
           top_k: 5,
         },
       };
+
+      if (activeProject) {
+        request.arguments.project_ids = [activeProject.id];
+      }
 
       const response = await fetch('/api/request', {
         method: 'POST',
@@ -82,6 +100,59 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) 
 
   return (
     <div className="space-y-6">
+      {/* Project Selector */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Project Context</h3>
+          <div className="relative">
+            <button
+              onClick={() => setShowProjectSelector(!showProjectSelector)}
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              <Folder className="h-4 w-4 mr-2" />
+              {activeProject ? activeProject.name : 'All Projects'}
+              <ChevronDown className="h-4 w-4 ml-2" />
+            </button>
+
+            {showProjectSelector && (
+              <div className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      setActiveProject(null);
+                      setShowProjectSelector(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                      !activeProject
+                        ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    All Projects
+                  </button>
+                  {projects.map((project) => (
+                    <button
+                      key={project.id}
+                      onClick={() => {
+                        setActiveProject(project);
+                        setShowProjectSelector(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                        activeProject?.id === project.id
+                          ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {project.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Question Input */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -148,6 +219,23 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) 
             <div className="flex items-start justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Answer</h2>
               <div className="flex items-center space-x-2">
+                <button
+                  onClick={copyAnswer}
+                  className="flex items-center px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  title="Copy answer"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-3 w-3 mr-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </>
+                  )}
+                </button>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getConfidenceColor(answer.confidence)}`}>
                   {getConfidenceIcon(answer.confidence)} {answer.confidence.toUpperCase()} CONFIDENCE
                 </span>
@@ -159,11 +247,10 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({ tools, onSwitchToSearch }) 
               </div>
             </div>
             
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                {answer.answer}
-              </p>
-            </div>
+            <div 
+              className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-code:text-gray-800 dark:prose-code:text-gray-200 prose-code:bg-gray-100 dark:prose-code:bg-gray-700 prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600 prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400"
+              dangerouslySetInnerHTML={{ __html: marked(answer.answer) }}
+            />
 
             {answer.confidence === 'low' && (
               <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">

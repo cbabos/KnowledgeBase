@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Search, FileText, MessageSquare, Settings, FolderPlus, Database } from 'lucide-react';
+import { Search, FileText, MessageSquare, Settings, FolderPlus, Database, Folder } from 'lucide-react';
 import SearchInterface from './components/SearchInterface';
 import QnAInterface from './components/QnAInterface';
 import SettingsInterface from './components/SettingsInterface';
 import IndexingInterface from './components/IndexingInterface';
-import { MCPTool } from './types';
+import ProjectsInterface from './components/ProjectsInterface';
+import { MCPTool, Project } from './types';
 
-type Tab = 'search' | 'qa' | 'settings' | 'indexing';
+type Tab = 'search' | 'qa' | 'settings' | 'indexing' | 'projects';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('qa');
   const [tools, setTools] = useState<MCPTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     loadTools();
+    loadProjects();
   }, []);
+
 
   const loadTools = async () => {
     try {
@@ -31,9 +35,25 @@ function App() {
     }
   };
 
+  const loadProjects = async () => {
+    try {
+      const response = await fetch('/api/projects');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setProjects(data.projects || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+    }
+  };
+
+
   const tabs = [
     { id: 'qa' as Tab, label: 'Q&A', icon: MessageSquare },
     { id: 'search' as Tab, label: 'Search', icon: Search },
+    { id: 'projects' as Tab, label: 'Projects', icon: Folder },
     { id: 'indexing' as Tab, label: 'Index', icon: Database },
     { id: 'settings' as Tab, label: 'Settings', icon: Settings },
   ];
@@ -61,6 +81,7 @@ function App() {
                 Knowledge Base
               </h1>
             </div>
+
             
             {/* Tab Navigation */}
             <nav className="flex space-x-1">
@@ -89,9 +110,10 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="fade-in">
-          {activeTab === 'qa' && <QnAInterface tools={tools} onSwitchToSearch={() => setActiveTab('search')} />}
-          {activeTab === 'search' && <SearchInterface tools={tools} />}
-          {activeTab === 'indexing' && <IndexingInterface />}
+          {activeTab === 'qa' && <QnAInterface tools={tools} projects={projects} onSwitchToSearch={() => setActiveTab('search')} />}
+          {activeTab === 'search' && <SearchInterface tools={tools} projects={projects} />}
+          {activeTab === 'projects' && <ProjectsInterface onProjectChange={loadProjects} />}
+          {activeTab === 'indexing' && <IndexingInterface projects={projects} />}
           {activeTab === 'settings' && <SettingsInterface />}
         </div>
       </main>

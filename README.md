@@ -5,11 +5,40 @@ A local-first knowledge management system that helps you search, summarize, and 
 ## Features
 
 - **Local-First**: All processing happens on your device by default
-- **Fast Search**: Keyword and semantic search over your knowledge base
-- **AI Summarization**: Generate summaries of documents using Ollama
-- **Q&A**: Ask natural language questions with citations
-- **Multiple Interfaces**: Web UI and CLI
+- **Fast Search**: Keyword and semantic search over your knowledge base with project filtering
+- **AI Q&A**: Ask natural language questions with citations and markdown responses
+- **Project Management**: Organize documents into projects for better organization
+- **Document Versioning**: Track document changes with version history and diff comparison
+- **Multiple File Types**: Support for Markdown, Text, and Word documents (.docx)
+- **Multiple Interfaces**: Web UI and CLI with full feature parity
 - **Privacy-Focused**: Optional remote processing with explicit consent
+- **MCP Integration**: Micro-Agent Communication Protocol for AI tool integration
+
+## Key Capabilities
+
+### Project Organization
+- Create and manage multiple projects to organize your knowledge base
+- Assign folders and documents to specific projects
+- Filter search and Q&A operations by project context
+- Reassign folders between projects while preserving version history
+
+### Document Versioning
+- Automatic version tracking when documents are modified
+- View version history with timestamps and change summaries
+- Compare document versions with detailed diff display
+- Preserve all historical versions for audit and recovery
+
+### Advanced Search & Q&A
+- Full-text search with project filtering and file type filtering
+- Natural language Q&A with markdown-formatted responses
+- Citation tracking showing document versions used
+- Context-aware responses based on project selection
+
+### File Format Support
+- **Markdown**: Full rendering with syntax highlighting
+- **Word Documents**: Automatic conversion to markdown with Pandoc
+- **Text Files**: Plain text processing with metadata extraction
+- **Future**: PDF and other formats planned
 
 ## Tech Stack
 
@@ -44,6 +73,18 @@ A local-first knowledge management system that helps you search, summarize, and 
    # Using nvm (recommended)
    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
    nvm install node
+   ```
+
+4. **Pandoc** (Optional): For enhanced .docx support
+   ```bash
+   # macOS
+   brew install pandoc
+   
+   # Ubuntu/Debian
+   sudo apt-get install pandoc
+   
+   # Windows
+   # Download from https://pandoc.org/installing.html
    ```
 
 ### Installation
@@ -83,8 +124,11 @@ A local-first knowledge management system that helps you search, summarize, and 
 
 3. **Use the CLI**:
    ```bash
-   # Add a folder to index
-   ./target/release/kb corpus add /path/to/your/notes
+   # Create a project
+   ./target/release/kb project create "My Project" --description "Project description"
+   
+   # Add a folder to index with project assignment
+   ./target/release/kb corpus add /path/to/your/notes --project "My Project"
    
    # Build the index
    ./target/release/kb corpus index
@@ -100,26 +144,37 @@ A local-first knowledge management system that helps you search, summarize, and 
 
 ### Web Interface
 
-1. **Indexing**: Go to the "Index" tab and add folders containing your notes
-2. **Search**: Use the "Search" tab to find documents by keywords
-3. **Q&A**: Use the "Q&A" tab to ask natural language questions
-4. **Settings**: Configure privacy and model settings
+1. **Projects**: Create and manage projects to organize your documents
+2. **Indexing**: Go to the "Index" tab to add folders and assign them to projects
+3. **Search**: Use the "Search" tab with project filtering to find documents
+4. **Q&A**: Use the "Q&A" tab to ask questions with project-specific context
+5. **Version History**: View document changes and compare versions
+6. **Settings**: Configure privacy, model settings, and file exclusions
 
 ### CLI Usage
 
 ```bash
+# Project management
+kb project list                   # List all projects
+kb project create "Name"          # Create new project
+kb project update <id> "Name"     # Update project
+kb project delete <id>            # Delete project
+
 # Corpus management
 kb corpus add /path/to/folder     # Add folder to corpus
+kb corpus add /path/to/folder --project "Project Name"  # Add with project
 kb corpus list                    # List configured folders
 kb corpus index                   # Build index
 kb corpus reindex                 # Rebuild index
 
 # Search and retrieval
 kb search "query"                 # Search documents
+kb search "query" --project "Project Name"  # Search within project
 kb list                          # List all documents
 kb read <document-id>            # Read full document
 kb summarize <document-id>       # Summarize document
 kb ask "question"                # Ask a question
+kb ask "question" --project "Project Name"  # Ask within project context
 ```
 
 ## Configuration
@@ -157,8 +212,9 @@ patterns = ["node_modules", ".git", "*.tmp"]
 
 ## Supported File Types
 
-- **Markdown** (`.md`): Full support with frontmatter parsing
+- **Markdown** (`.md`): Full support with frontmatter parsing and markdown rendering
 - **Text** (`.txt`): Plain text files
+- **Word Documents** (`.docx`): Full support with Pandoc conversion or fallback text extraction
 - **PDF** (`.pdf`): Basic text extraction (experimental)
 
 ## Development
@@ -196,16 +252,20 @@ knowledge-base/
 ### Testing
 
 ```bash
-# Backend tests
+# Backend tests (includes project management, document versioning, .docx support)
 cd backend
 cargo test
 
-# Frontend tests
+# Frontend tests (includes UI components, project management, document viewer)
 npm test
 
-# CLI tests
+# CLI tests (includes project commands, corpus management)
 cd cli
 cargo test
+
+# Integration tests
+cd backend
+cargo test --test "*"  # Run all integration tests
 ```
 
 ## Contributing
@@ -242,6 +302,17 @@ MIT License - see LICENSE file for details.
    - Check folder permissions
    - Ensure supported file types
    - Review exclusion patterns
+   - Verify project assignment is correct
+
+5. **Project management issues**:
+   - Ensure database is properly migrated
+   - Check project ID format (should be UUID)
+   - Verify project exists before assigning folders
+
+6. **Document versioning issues**:
+   - Check if content snapshots are being stored
+   - Verify document modification timestamps
+   - Ensure proper database schema migration
 
 ### Getting Help
 

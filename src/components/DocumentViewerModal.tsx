@@ -95,7 +95,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
           <div className="flex items-center"><Folder className="h-4 w-4 mr-1" />{path}</div>
           <div className="flex items-center"><Calendar className="h-4 w-4 mr-1" />{formatDate(modifiedAt)}</div>
         </div>
-        <div className="p-4 overflow-auto">
+        <div className="p-4 overflow-auto max-h-[calc(85vh-120px)]">
           {isLoading && (
             <div className="text-center text-gray-500 dark:text-gray-400">Loading...</div>
           )}
