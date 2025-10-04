@@ -337,9 +337,11 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                 )
         );
 
-    // Serve static files from build directory (only for specific paths)
-    let static_files = warp::path("static")
-        .and(warp::fs::dir("../build/static"))
+    // Serve static files from build directory
+    let static_files = warp::path("assets")
+        .and(warp::fs::dir("../build/assets"))
+        .or(warp::path("static")
+            .and(warp::fs::dir("../build/static")))
         .or(warp::path("manifest.json")
             .and(warp::fs::file("../build/manifest.json")))
         .or(warp::path("asset-manifest.json")
@@ -356,6 +358,7 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
             // Only serve index.html for non-API, non-static file requests
             if !path.as_str().starts_with("/api") && 
                !path.as_str().starts_with("/static") &&
+               !path.as_str().starts_with("/assets") &&
                !path.as_str().contains(".") {
                 Ok::<_, Infallible>(warp::reply::html(
                     std::fs::read_to_string("../build/index.html").unwrap_or_default()
