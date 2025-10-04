@@ -1,48 +1,196 @@
 ---
 alwaysApply: true
-description: Knowledge Base project structure and architecture guide
 ---
 
 # Knowledge Base Project Structure
 
-This is a full-stack personal knowledge retrieval system with a React frontend and Rust backend.
+## Overview
+This is a full-stack personal knowledge retrieval system with a React frontend and Rust backend, featuring AI-powered question answering, document search, and project management.
 
-## Project Architecture
+## Frontend Architecture
 
-### Frontend (React + TypeScript + Vite)
-- **Entry Point**: [src/index.tsx](mdc:src/index.tsx) - Main React application entry
-- **Main App**: [src/App.tsx](mdc:src/App.tsx) - Root component with tab navigation
-- **Types**: [src/types.ts](mdc:src/types.ts) - TypeScript interfaces for API communication
-- **Components**: [src/components/](mdc:src/components/) - React components for different interfaces
-- **Styling**: [src/index.css](mdc:src/index.css) - Global styles with Tailwind CSS
-- **Configuration**: [package.json](mdc:package.json), [vite.config.ts](mdc:vite.config.ts), [tailwind.config.js](mdc:tailwind.config.js)
+### Main Entry Points
+- [src/index.tsx](mdc:src/index.tsx) - React application entry point
+- [src/components/App/App.tsx](mdc:src/components/App/App.tsx) - Root component with tab navigation
+- [src/types.ts](mdc:src/types.ts) - TypeScript interfaces for API communication
 
-### Backend (Rust + Actix Web)
-- **Main Entry**: [backend/src/main.rs](mdc:backend/src/main.rs) - Server startup
-- **Configuration**: [backend/src/config.rs](mdc:backend/src/config.rs) - App configuration management
-- **Database**: [backend/src/database.rs](mdc:backend/src/database.rs) - SQLite database operations
-- **API Server**: [backend/src/server.rs](mdc:backend/src/server.rs) - HTTP API endpoints
-- **Search Engine**: [backend/src/search.rs](mdc:backend/src/search.rs) - Full-text search functionality
-- **MCP Integration**: [backend/src/mcp.rs](mdc:backend/src/mcp.rs) - Model Context Protocol tools
-- **Ollama Integration**: [backend/src/ollama.rs](mdc:backend/src/ollama.rs) - AI model communication
-- **Corpus Management**: [backend/src/corpus.rs](mdc:backend/src/corpus.rs) - Document indexing and management
+### Core Components
+- [src/components/common/Button.tsx](mdc:src/components/common/Button.tsx) - Reusable button component system
+- [src/components/App/App.tsx](mdc:src/components/App/App.tsx) - Main application layout
+- [src/components/ProjectsInterface/ProjectsInterface.tsx](mdc:src/components/ProjectsInterface/ProjectsInterface.tsx) - Project management
+- [src/components/IndexingInterface/IndexingInterface.tsx](mdc:src/components/IndexingInterface/IndexingInterface.tsx) - Document indexing
+- [src/components/QnAInterface/QnAInterface.tsx](mdc:src/components/QnAInterface/QnAInterface.tsx) - AI question answering
+- [src/components/SearchInterface/SearchInterface.tsx](mdc:src/components/SearchInterface/SearchInterface.tsx) - Document search
+- [src/components/DocumentViewerModal/DocumentViewerModal.tsx](mdc:src/components/DocumentViewerModal/DocumentViewerModal.tsx) - Document preview
+- [src/components/SettingsInterface/SettingsInterface.tsx](mdc:src/components/SettingsInterface/SettingsInterface.tsx) - Application settings
+- [src/components/VersionHistoryInterface/VersionHistoryInterface.tsx](mdc:src/components/VersionHistoryInterface/VersionHistoryInterface.tsx) - Version tracking
+
+### Supporting Components
+- [src/components/common/Dropdown.tsx](mdc:src/components/common/Dropdown.tsx) - Reusable dropdown component
+- [src/components/common/ThemeToggle.tsx](mdc:src/components/common/ThemeToggle.tsx) - Dark/light mode toggle
+- [src/components/CitationPreview/CitationPreview.tsx](mdc:src/components/CitationPreview/CitationPreview.tsx) - Citation display component
+- [src/components/DocumentPreviewModal/DocumentPreviewModal.tsx](mdc:src/components/DocumentPreviewModal/DocumentPreviewModal.tsx) - Document preview modal
+
+### Context Providers
+- [src/contexts/ThemeContext.tsx](mdc:src/contexts/ThemeContext.tsx) - Theme management context
+- [src/contexts/StatePersistenceContext.tsx](mdc:src/contexts/StatePersistenceContext.tsx) - State persistence context
+
+### Styling System
+- [src/styles/tokens.css](mdc:src/styles/tokens.css) - Design token system (colors, spacing, typography)
+- [src/styles/base.css](mdc:src/styles/base.css) - Global base styles and resets
+- [src/styles/components.css](mdc:src/styles/components.css) - Reusable component styles
+- [src/index.css](mdc:src/index.css) - Main CSS entry point
+- [src/types/css-modules.d.ts](mdc:src/types/css-modules.d.ts) - TypeScript declarations for CSS modules
+- Each component has its own CSS module file (e.g., `ComponentName.module.css`)
+
+### Configuration
+- [package.json](mdc:package.json) - Frontend dependencies and scripts
+- [vite.config.ts](mdc:vite.config.ts) - Vite build configuration with CSS modules
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript configuration
+- [.prettierrc](mdc:.prettierrc) - Prettier formatting configuration
+- [.prettierignore](mdc:.prettierignore) - Prettier ignore patterns
+
+## Backend Architecture
+
+### Main Entry Points
+- [backend/src/main.rs](mdc:backend/src/main.rs) - Server startup and configuration
+- [backend/src/config.rs](mdc:backend/src/config.rs) - Application configuration management
+- [backend/src/database.rs](mdc:backend/src/database.rs) - SQLite database operations
+- [backend/src/server.rs](mdc:backend/src/server.rs) - HTTP API endpoints
+
+### Core Modules
+- [backend/src/search.rs](mdc:backend/src/search.rs) - Full-text search functionality
+- [backend/src/mcp.rs](mdc:backend/src/mcp.rs) - Model Context Protocol tools
+- [backend/src/ollama.rs](mdc:backend/src/ollama.rs) - AI model communication
+- [backend/src/corpus.rs](mdc:backend/src/corpus.rs) - Document indexing and management
 
 ### CLI Tool
-- **CLI Entry**: [cli/src/main.rs](mdc:cli/src/main.rs) - Command-line interface
-
-### Documentation
-- **Requirements**: [doc/](mdc:doc/) - Business requirements and technical specifications
-- **Epics**: [doc/Epics_Index.md](mdc:doc/Epics_Index.md) - Feature epics overview
+- [cli/src/main.rs](mdc:cli/src/main.rs) - Command-line interface
 
 ## Key Features
-1. **Q&A Interface** - AI-powered question answering with RAG
-2. **Search Interface** - Full-text search across indexed documents
-3. **Project Management** - Organize documents into projects
-4. **Indexing Interface** - Manage document corpus and indexing
-5. **Settings Interface** - Configure application settings
-6. **Version History** - Track document changes over time
+
+### 1. Q&A Interface
+- AI-powered question answering with RAG (Retrieval-Augmented Generation)
+- Project context selection
+- Confidence scoring and citation display
+- Document version awareness
+
+### 2. Search Interface
+- Full-text search across indexed documents
+- Advanced filtering options
+- Document preview and metadata display
+- Version history integration
+
+### 3. Project Management
+- Organize documents into projects
+- Project-based context for AI queries
+- Project metadata and descriptions
+
+### 4. Indexing Interface
+- Manage document corpus and indexing
+- Folder-based document organization
+- Re-indexing and project reassignment
+- Indexing progress and error reporting
+
+### 5. Settings Interface
+- Privacy and security configuration
+- Ollama model settings
+- Database management
+- Import/export functionality
+
+### 6. Version History
+- Track document changes over time
+- Compare document versions
+- Historical query context
 
 ## API Communication
+
+### Frontend-Backend Communication
 - Frontend communicates with backend via REST API on port 8080
 - Main endpoints: `/api/tools`, `/api/projects`, `/api/search`, `/api/qa`
 - Backend serves static files from `build/` directory in production
+
+### Key API Endpoints
+- `GET /api/tools` - Available MCP tools
+- `GET /api/projects` - Project list
+- `POST /api/projects` - Create project
+- `GET /api/search` - Search documents
+- `POST /api/qa` - Ask questions
+- `POST /api/index` - Index documents
+- `GET /api/index/folders` - Indexed folders
+
+## Technology Stack
+
+### Frontend
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **CSS Modules** - Scoped styling with design tokens
+- **Lucide React** - Icon library
+- **Marked** - Markdown parsing
+- **Prettier** - Code formatting
+- **Husky** - Git hooks for code quality
+
+### Backend
+- **Rust** - Systems programming language
+- **Actix Web** - HTTP server framework
+- **SQLite** - Embedded database
+- **Ollama** - Local AI model integration
+- **MCP** - Model Context Protocol
+
+## Development Workflow
+
+### Frontend Development
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+```
+
+### Backend Development
+```bash
+cargo run            # Run backend server
+cargo test           # Run tests
+cargo build --release # Build optimized binary
+```
+
+### Full Stack
+```bash
+./start.sh           # Start both frontend and backend
+```
+
+## File Organization Principles
+
+### Component Structure
+- One component per directory with CSS module
+- Organized into logical groups (common, interfaces, modals)
+- TypeScript interfaces in types.ts
+- Consistent naming conventions
+- Context providers for global state
+
+### Styling Approach
+- CSS Modules for component-scoped styles
+- Design tokens for consistency across components
+- Dark mode support throughout
+- Responsive design patterns
+- Component-specific CSS modules (ComponentName.module.css)
+
+### State Management
+- Local component state with React hooks
+- API integration with fetch
+- Error handling and loading states
+- Form validation and submission
+
+## Build and Deployment
+
+### Production Build
+- Frontend builds to `build/` directory
+- Backend builds to `target/release/`
+- Static file serving from backend
+- Optimized bundle sizes
+
+### Bundle Optimization
+- CSS Modules reduce bundle size by ~46%
+- Tree shaking for unused code
+- Code splitting for better performance
+- Gzip compression for assets

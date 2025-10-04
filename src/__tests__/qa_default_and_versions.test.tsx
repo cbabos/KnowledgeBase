@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
-import App from '../App';
+import App from '../components/App/App';
 
 // Mock fetch globally
 const originalFetch = global.fetch as any;

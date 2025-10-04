@@ -1,0 +1,509 @@
+/* Projects Interface Component Styles */
+@import '../../styles/tokens.css';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.headerIcon {
+  height: 1.25rem;
+  width: 1.25rem;
+  color: var(--color-primary-500);
+  margin-right: var(--space-2);
+}
+
+.headerTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+:global(.dark) .headerTitle {
+  color: white;
+}
+
+.createButton {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-primary-500);
+  color: white;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.createButton:hover {
+  background-color: var(--color-primary-600);
+}
+
+.createButtonIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: var(--space-2);
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.loadingSpinner {
+  margin-right: var(--space-2);
+}
+
+.loadingText {
+  color: var(--color-gray-600);
+}
+
+:global(.dark) .loadingText {
+  color: var(--color-gray-400);
+}
+
+.errorAlert {
+  background-color: var(--color-error-50);
+  border: 1px solid var(--color-error-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+:global(.dark) .errorAlert {
+  background-color: var(--color-error-900);
+  border-color: var(--color-error-800);
+}
+
+.errorText {
+  color: var(--color-error-700);
+}
+
+:global(.dark) .errorText {
+  color: var(--color-error-400);
+}
+
+.projectsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .projectsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .projectsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.projectCard {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+  padding: var(--space-6);
+  transition: box-shadow var(--transition-base);
+}
+
+.projectCard:hover {
+  box-shadow: var(--shadow-base);
+}
+
+:global(.dark) .projectCard {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.projectHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.projectInfo {
+  flex: 1;
+}
+
+.projectName {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+  margin-bottom: var(--space-1);
+}
+
+:global(.dark) .projectName {
+  color: white;
+}
+
+.projectDescription {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  line-height: var(--line-height-relaxed);
+}
+
+:global(.dark) .projectDescription {
+  color: var(--color-gray-400);
+}
+
+.projectActions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.actionButton {
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+  color: var(--color-gray-500);
+}
+
+.actionButton:hover {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+}
+
+:global(.dark) .actionButton {
+  color: var(--color-gray-400);
+}
+
+:global(.dark) .actionButton:hover {
+  background-color: var(--color-gray-700);
+  color: var(--color-gray-300);
+}
+
+.actionButtonDanger:hover {
+  background-color: var(--color-error-100);
+  color: var(--color-error-700);
+}
+
+:global(.dark) .actionButtonDanger:hover {
+  background-color: var(--color-error-900);
+  color: var(--color-error-400);
+}
+
+.actionIcon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.projectMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+:global(.dark) .projectMeta {
+  color: var(--color-gray-400);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+}
+
+.metaIcon {
+  height: 0.75rem;
+  width: 0.75rem;
+  margin-right: var(--space-1);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--space-12);
+  color: var(--color-gray-500);
+}
+
+:global(.dark) .emptyState {
+  color: var(--color-gray-400);
+}
+
+.emptyIcon {
+  height: 3rem;
+  width: 3rem;
+  color: var(--color-gray-300);
+  margin: 0 auto var(--space-4);
+}
+
+:global(.dark) .emptyIcon {
+  color: var(--color-gray-600);
+}
+
+.emptyTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+  margin-bottom: var(--space-2);
+}
+
+:global(.dark) .emptyTitle {
+  color: white;
+}
+
+.emptyDescription {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  margin-bottom: var(--space-4);
+}
+
+:global(.dark) .emptyDescription {
+  color: var(--color-gray-400);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modalContent {
+  position: relative;
+  background-color: white;
+  width: 100%;
+  max-width: 28rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-gray-200);
+  overflow: hidden;
+}
+
+:global(.dark) .modalContent {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+:global(.dark) .modalHeader {
+  border-bottom-color: var(--color-gray-700);
+}
+
+.modalTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+:global(.dark) .modalTitle {
+  color: white;
+}
+
+.modalCloseButton {
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+  color: var(--color-gray-500);
+}
+
+.modalCloseButton:hover {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+}
+
+:global(.dark) .modalCloseButton {
+  color: var(--color-gray-400);
+}
+
+:global(.dark) .modalCloseButton:hover {
+  background-color: var(--color-gray-700);
+  color: var(--color-gray-300);
+}
+
+.modalCloseIcon {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+.modalBody {
+  padding: var(--space-6);
+}
+
+.formGroup {
+  margin-bottom: var(--space-4);
+}
+
+.formLabel {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-700);
+  margin-bottom: var(--space-2);
+}
+
+:global(.dark) .formLabel {
+  color: var(--color-gray-300);
+}
+
+.formInput {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-gray-900);
+  background-color: white;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--color-primary-500);
+}
+
+:global(.dark) .formInput {
+  color: white;
+  background-color: var(--color-gray-700);
+  border-color: var(--color-gray-600);
+}
+
+.formTextarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-gray-900);
+  background-color: white;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.formTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--color-primary-500);
+}
+
+:global(.dark) .formTextarea {
+  color: white;
+  background-color: var(--color-gray-700);
+  border-color: var(--color-gray-600);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border-top: 1px solid var(--color-gray-200);
+}
+
+:global(.dark) .modalFooter {
+  border-top-color: var(--color-gray-700);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  transition: all var(--transition-base);
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonPrimary {
+  background-color: var(--color-primary-500);
+  color: white;
+  border-color: var(--color-primary-500);
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background-color: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+}
+
+.buttonSecondary {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border-color: var(--color-gray-300);
+}
+
+.buttonSecondary:hover:not(:disabled) {
+  background-color: var(--color-gray-200);
+  border-color: var(--color-gray-400);
+}
+
+:global(.dark) .buttonSecondary {
+  background-color: var(--color-gray-700);
+  color: var(--color-gray-300);
+  border-color: var(--color-gray-600);
+}
+
+:global(.dark) .buttonSecondary:hover:not(:disabled) {
+  background-color: var(--color-gray-600);
+  border-color: var(--color-gray-500);
+}
+
+.buttonDanger {
+  background-color: var(--color-error-500);
+  color: white;
+  border-color: var(--color-error-500);
+}
+
+.buttonDanger:hover:not(:disabled) {
+  background-color: var(--color-error-600);
+  border-color: var(--color-error-600);
+}

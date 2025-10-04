@@ -1,59 +1,339 @@
 ---
 description: Development workflow, testing, and deployment practices
+globs: *.tsx,*.ts,*.rs,*.json,*.toml
 ---
 
-# Development Workflow
+# Development Workflow Guide
 
-## Development Setup
-- **Frontend**: React + TypeScript + Vite development server
-- **Backend**: Rust + Warp web server on port 8080
-- **Database**: SQLite database for local development
-- **Start Scripts**: Use [start.sh](mdc:start.sh) for full-stack development
+## Project Setup
 
-## Code Quality
-- **Prettier**: Automatic code formatting on commit via Husky hooks
-- **TypeScript**: Strict type checking enabled
-- **ESLint**: Code linting (if configured)
-- **Testing**: Vitest for frontend testing, Rust built-in testing for backend
+### Prerequisites
+- Node.js 18+ and npm
+- Rust 1.70+ and Cargo
+- Git for version control
 
-## Git Workflow
-- **Pre-commit Hooks**: Automatic formatting via [.husky/pre-commit](mdc:.husky/pre-commit)
-- **Commit Messages**: Use conventional commit format
-- **Branch Strategy**: Feature branches for new development
-- **Code Review**: Review all changes before merging
+### Initial Setup
+```bash
+# Clone repository
+git clone <repository-url>
+cd KnowledgeBase
+
+# Install frontend dependencies
+npm install
+
+# Build backend dependencies (automatic on first run)
+cargo build
+
+# Start development servers
+./start.sh
+```
+
+## Development Commands
+
+### Frontend Development
+```bash
+# Development server (with hot reload)
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Type checking
+npx tsc --noEmit
+
+# Lint and format (if configured)
+npm run lint
+npm run format
+```
+
+### Backend Development
+```bash
+# Run backend server
+cargo run
+
+# Run with hot reload (requires cargo-watch)
+cargo watch -x run
+
+# Run tests
+cargo test
+
+# Run specific test
+cargo test test_name
+
+# Build optimized release
+cargo build --release
+
+# Check code without building
+cargo check
+
+# Format code
+cargo fmt
+
+# Lint code
+cargo clippy
+```
+
+### Full Stack Development
+```bash
+# Start both frontend and backend
+./start.sh
+
+# Or manually:
+# Terminal 1: npm run dev
+# Terminal 2: cargo run
+```
+
+## Code Quality Standards
+
+### TypeScript Standards
+- **Strict Types**: Always define explicit types for props, state, and function parameters
+- **Interface Definitions**: Use interfaces defined in [src/types.ts](mdc:src/types.ts)
+- **No Any Types**: Avoid `any` type, use proper typing
+- **Generic Constraints**: Use proper generic constraints
+
+### React Standards
+- **Functional Components**: Use functional components with hooks
+- **Component Structure**: Follow the standard component pattern
+- **State Management**: Keep state as local as possible
+- **Event Handlers**: Use descriptive names and proper typing
+
+### Rust Standards
+- **Error Handling**: Use Result types for error handling
+- **Documentation**: Document public APIs with doc comments
+- **Testing**: Write unit tests for core functionality
+- **Performance**: Consider performance implications of data structures
 
 ## Testing Strategy
-- **Frontend Tests**: Unit tests in [src/__tests__/](mdc:src/__tests__/)
-- **Backend Tests**: Integration tests in [backend/tests/](mdc:backend/tests/)
-- **API Tests**: Test all API endpoints
-- **E2E Tests**: Consider adding end-to-end tests for critical flows
 
-## Build Process
-- **Frontend Build**: `npm run build` creates production build in `build/`
-- **Backend Build**: `cargo build --release` for production
-- **Build Script**: [build.sh](mdc:build.sh) for automated builds
-- **Static Serving**: Backend serves frontend static files in production
+### Frontend Testing
+```typescript
+// Component testing with React Testing Library
+import { render, screen, fireEvent } from '@testing-library/react';
+import Button from './Button';
+
+test('renders button with correct text', () => {
+  render(<Button>Click me</Button>);
+  expect(screen.getByText('Click me')).toBeInTheDocument();
+});
+
+test('handles click events', () => {
+  const handleClick = jest.fn();
+  render(<Button onClick={handleClick}>Click me</Button>);
+  fireEvent.click(screen.getByText('Click me'));
+  expect(handleClick).toHaveBeenCalledTimes(1);
+});
+```
+
+### Backend Testing
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_database_connection() {
+        let db = Database::new(":memory:").unwrap();
+        assert!(db.is_connected());
+    }
+
+    #[tokio::test]
+    async fn test_api_endpoint() {
+        let app = create_test_app().await;
+        let response = app
+            .post("/api/test")
+            .json(&test_data())
+            .send()
+            .await
+            .unwrap();
+        
+        assert_eq!(response.status(), 200);
+    }
+}
+```
+
+## Git Workflow
+
+### Branch Strategy
+```bash
+# Feature development
+git checkout -b feature/button-component
+git add .
+git commit -m "feat: add reusable Button component"
+git push origin feature/button-component
+
+# Bug fixes
+git checkout -b fix/modal-styling
+git add .
+git commit -m "fix: correct modal backdrop styling"
+git push origin fix/modal-styling
+```
+
+### Commit Message Convention
+```
+type(scope): description
+
+feat(button): add loading state support
+fix(modal): correct backdrop click handling
+docs(readme): update installation instructions
+style(css): format component styles
+refactor(api): simplify error handling
+test(button): add comprehensive test suite
+```
+
+### Pull Request Process
+1. Create feature branch from `main`
+2. Implement changes with tests
+3. Update documentation if needed
+4. Create pull request with description
+5. Request code review
+6. Address feedback and merge
+
+## Build and Deployment
+
+### Development Build
+```bash
+# Frontend development build
+npm run dev
+
+# Backend development build
+cargo run
+```
+
+### Production Build
+```bash
+# Frontend production build
+npm run build
+
+# Backend production build
+cargo build --release
+
+# Combined build script
+./build.sh
+```
+
+### Build Verification
+```bash
+# Test production build locally
+npm run preview
+
+# Run backend tests
+cargo test
+
+# Check bundle sizes
+npm run build && ls -la build/assets/
+```
+
+## Performance Optimization
+
+### Frontend Optimization
+- **Bundle Analysis**: Use `npm run build` to check bundle sizes
+- **Code Splitting**: Implement lazy loading for large components
+- **Image Optimization**: Optimize images and use appropriate formats
+- **CSS Optimization**: Use CSS Modules for tree shaking
+
+### Backend Optimization
+- **Release Builds**: Always use `--release` for production
+- **Database Indexing**: Ensure proper database indexes
+- **Memory Management**: Monitor memory usage and optimize data structures
+- **Async Operations**: Use async/await for I/O operations
+
+## Debugging
+
+### Frontend Debugging
+```typescript
+// React DevTools
+// Browser DevTools
+console.log('Debug info:', data);
+
+// Error boundaries
+class ErrorBoundary extends React.Component {
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught:', error, errorInfo);
+  }
+}
+```
+
+### Backend Debugging
+```rust
+// Logging
+use log::{info, warn, error};
+
+info!("Processing request: {}", request_id);
+warn!("Deprecated API endpoint used");
+error!("Database connection failed: {}", err);
+
+// Debug prints
+#[cfg(debug_assertions)]
+println!("Debug: {:?}", data);
+```
 
 ## Environment Configuration
-- **Development**: Local development with hot reload
-- **Production**: Optimized builds with static file serving
-- **Configuration**: Environment-specific config via [backend/src/config.rs](mdc:backend/src/config.rs)
-- **Secrets**: Store sensitive data in environment variables
 
-## Performance Monitoring
-- **Frontend**: Monitor bundle size and loading performance
-- **Backend**: Monitor API response times and memory usage
-- **Database**: Monitor query performance and connection usage
-- **Logging**: Structured logging for debugging and monitoring
+### Frontend Environment
+```bash
+# Development
+VITE_API_URL=http://localhost:8080
+VITE_DEBUG=true
 
-## Deployment
-- **Static Files**: Frontend built to `build/` directory
-- **Backend Binary**: Rust binary serves both API and static files
-- **Database**: SQLite database file for data persistence
-- **Configuration**: TOML config file for runtime settings
+# Production
+VITE_API_URL=https://api.example.com
+VITE_DEBUG=false
+```
+
+### Backend Environment
+```bash
+# Development
+RUST_LOG=debug
+DATABASE_URL=sqlite:./dev.db
+OLLAMA_URL=http://localhost:11434
+
+# Production
+RUST_LOG=info
+DATABASE_URL=sqlite:./prod.db
+OLLAMA_URL=http://ollama:11434
+```
 
 ## Documentation
-- **Code Comments**: Document complex logic and public APIs
-- **README**: Keep [README.md](mdc:README.md) updated with setup instructions
-- **API Docs**: Document API endpoints and request/response formats
-- **Architecture**: Document system architecture and design decisions
+
+### Code Documentation
+- **TypeScript**: Use JSDoc comments for complex functions
+- **Rust**: Use doc comments for public APIs
+- **Components**: Document props and usage examples
+- **API**: Document endpoints and request/response formats
+
+### README Maintenance
+- Keep installation instructions up to date
+- Document new features and changes
+- Include troubleshooting section
+- Provide examples and usage patterns
+
+## Security Considerations
+
+### Frontend Security
+- **Input Validation**: Validate all user inputs
+- **XSS Prevention**: Sanitize user-generated content
+- **CSRF Protection**: Use proper CSRF tokens
+- **Content Security Policy**: Implement CSP headers
+
+### Backend Security
+- **Input Validation**: Validate all API inputs
+- **SQL Injection**: Use parameterized queries
+- **Authentication**: Implement proper auth mechanisms
+- **Rate Limiting**: Implement rate limiting for APIs
+
+## Monitoring and Logging
+
+### Application Monitoring
+- **Error Tracking**: Implement error reporting
+- **Performance Monitoring**: Track response times
+- **Usage Analytics**: Monitor feature usage
+- **Health Checks**: Implement health check endpoints
+
+### Logging Strategy
+- **Structured Logging**: Use structured log formats
+- **Log Levels**: Use appropriate log levels
+- **Log Rotation**: Implement log rotation
+- **Centralized Logging**: Consider centralized logging solution

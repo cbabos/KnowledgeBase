@@ -47,9 +47,11 @@ A local-first knowledge management system that helps you search, summarize, and 
 ## Tech Stack
 
 - **Backend**: Rust with SQLite database
-- **Frontend**: React with TypeScript and Tailwind CSS
+- **Frontend**: React with TypeScript and CSS Modules
+- **Styling**: CSS Modules with design token system
 - **LLM**: Ollama with gpt-oss:20b model
 - **CLI**: Rust CLI for power users
+- **Code Quality**: Prettier formatting with Husky git hooks
 
 ## Quick Start
 
@@ -248,9 +250,28 @@ knowledge-base/
 ├── backend/          # Rust backend server
 ├── cli/             # Rust CLI interface
 ├── src/             # React frontend
+│   ├── components/  # React components organized by type
+│   │   ├── App/     # Main application component
+│   │   ├── common/  # Reusable components (Button, Dropdown, etc.)
+│   │   ├── *Interface/ # Feature-specific interfaces
+│   │   └── *Modal/  # Modal components
+│   ├── contexts/    # React context providers
+│   ├── styles/      # Design tokens and global styles
+│   └── types/       # TypeScript type definitions
 ├── doc/             # Documentation
 └── Cargo.toml       # Workspace configuration
 ```
+
+### Frontend Architecture
+
+The frontend uses a modern React architecture with:
+
+- **Component Organization**: Components are organized into logical directories (common, interfaces, modals)
+- **CSS Modules**: Each component has its own scoped CSS module file
+- **Design Tokens**: Centralized design system with CSS custom properties
+- **Context Providers**: Global state management with React contexts
+- **TypeScript**: Full type safety with comprehensive interfaces
+- **Code Quality**: Prettier formatting and Husky git hooks
 
 ### Running in Development
 
@@ -272,6 +293,26 @@ knowledge-base/
    cd cli
    cargo run -- search "test query"
    ```
+
+### Code Quality
+
+The project includes comprehensive code quality tools:
+
+- **Prettier**: Automatic code formatting
+- **Husky**: Git hooks for pre-commit formatting
+- **TypeScript**: Strict type checking
+- **CSS Modules**: Scoped styling with design tokens
+
+```bash
+# Format code
+npm run format
+
+# Check formatting
+npm run format:check
+
+# Type checking
+npx tsc --noEmit
+```
 
 ### Testing
 

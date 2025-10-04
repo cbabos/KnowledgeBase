@@ -1,0 +1,707 @@
+/* QnA Interface Component Styles */
+@import '../../styles/tokens.css';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.projectSelector {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+  padding: var(--space-4);
+}
+
+:global(.dark) .projectSelector {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.projectSelectorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.projectSelectorTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-700);
+}
+
+:global(.dark) .projectSelectorTitle {
+  color: var(--color-gray-300);
+}
+
+.projectSelectorButton {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-700);
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.projectSelectorButton:hover {
+  background-color: var(--color-gray-200);
+}
+
+:global(.dark) .projectSelectorButton {
+  color: var(--color-gray-300);
+  background-color: var(--color-gray-700);
+}
+
+:global(.dark) .projectSelectorButton:hover {
+  background-color: var(--color-gray-600);
+}
+
+.projectSelectorIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: var(--space-2);
+}
+
+.projectDropdown {
+  width: 16rem;
+}
+
+.questionInput {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+  padding: var(--space-6);
+}
+
+:global(.dark) .questionInput {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.questionInputHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.questionInputTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+:global(.dark) .questionInputTitle {
+  color: white;
+}
+
+.switchToSearchButton {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-primary-600);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.switchToSearchButton:hover {
+  color: var(--color-primary-700);
+}
+
+:global(.dark) .switchToSearchButton {
+  color: var(--color-primary-400);
+}
+
+:global(.dark) .switchToSearchButton:hover {
+  color: var(--color-primary-300);
+}
+
+.switchToSearchIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: var(--space-2);
+}
+
+.questionInputForm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.questionInputField {
+  flex: 1;
+  position: relative;
+}
+
+.questionInputIcon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1.25rem;
+  width: 1.25rem;
+  color: var(--color-gray-400);
+}
+
+.questionInputInput {
+  width: 100%;
+  padding-left: 2.5rem;
+  padding-right: var(--space-4);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.questionInputInput:focus {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--color-primary-500);
+}
+
+:global(.dark) .questionInputInput {
+  color: white;
+  background-color: var(--color-gray-700);
+  border-color: var(--color-gray-600);
+}
+
+.askButton {
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-primary-500);
+  color: white;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.askButton:hover:not(:disabled) {
+  background-color: var(--color-primary-600);
+}
+
+.askButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.askButtonIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: var(--space-2);
+}
+
+.askButtonSpinner {
+  height: 1rem;
+  width: 1rem;
+  margin-right: var(--space-2);
+}
+
+.errorAlert {
+  background-color: var(--color-error-50);
+  border: 1px solid var(--color-error-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+:global(.dark) .errorAlert {
+  background-color: var(--color-error-900);
+  border-color: var(--color-error-800);
+}
+
+.errorAlertContent {
+  display: flex;
+  align-items: center;
+}
+
+.errorAlertIcon {
+  height: 1.25rem;
+  width: 1.25rem;
+  color: var(--color-error-500);
+  margin-right: var(--space-2);
+}
+
+.errorAlertText {
+  color: var(--color-error-700);
+}
+
+:global(.dark) .errorAlertText {
+  color: var(--color-error-400);
+}
+
+.answerSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.answerCard {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+  padding: var(--space-6);
+}
+
+:global(.dark) .answerCard {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.answerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.answerTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+:global(.dark) .answerTitle {
+  color: white;
+}
+
+.answerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.copyButton:hover {
+  color: var(--color-gray-700);
+}
+
+:global(.dark) .copyButton {
+  color: var(--color-gray-400);
+}
+
+:global(.dark) .copyButton:hover {
+  color: var(--color-gray-200);
+}
+
+.copyButtonIcon {
+  height: 0.75rem;
+  width: 0.75rem;
+  margin-right: var(--space-1);
+}
+
+.confidenceBadge {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.confidenceHigh {
+  background-color: var(--color-success-100);
+  color: var(--color-success-600);
+}
+
+:global(.dark) .confidenceHigh {
+  background-color: var(--color-success-900);
+  color: var(--color-success-400);
+}
+
+.confidenceMedium {
+  background-color: var(--color-warning-100);
+  color: var(--color-warning-600);
+}
+
+:global(.dark) .confidenceMedium {
+  background-color: var(--color-warning-900);
+  color: var(--color-warning-400);
+}
+
+.confidenceLow {
+  background-color: var(--color-error-100);
+  color: var(--color-error-600);
+}
+
+:global(.dark) .confidenceLow {
+  background-color: var(--color-error-900);
+  color: var(--color-error-400);
+}
+
+.confidenceDefault {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+:global(.dark) .confidenceDefault {
+  background-color: var(--color-gray-900);
+  color: var(--color-gray-400);
+}
+
+.lowConfidenceWarning {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  background-color: var(--color-warning-50);
+  border: 1px solid var(--color-warning-200);
+  border-radius: var(--radius-lg);
+}
+
+:global(.dark) .lowConfidenceWarning {
+  background-color: var(--color-warning-900);
+  border-color: var(--color-warning-800);
+}
+
+.lowConfidenceWarningText {
+  font-size: var(--font-size-sm);
+  color: var(--color-warning-700);
+}
+
+:global(.dark) .lowConfidenceWarningText {
+  color: var(--color-warning-400);
+}
+
+.citationsCard {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+}
+
+:global(.dark) .citationsCard {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.citationsHeader {
+  padding: var(--space-6);
+}
+
+.citationsHeaderContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.citationsTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+:global(.dark) .citationsTitle {
+  color: white;
+}
+
+.citationsToggle {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary-600);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.citationsToggle:hover {
+  color: var(--color-primary-700);
+}
+
+:global(.dark) .citationsToggle {
+  color: var(--color-primary-400);
+}
+
+:global(.dark) .citationsToggle:hover {
+  color: var(--color-primary-300);
+}
+
+.citationsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.citationItem {
+  padding: var(--space-4);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base);
+  cursor: pointer;
+}
+
+.citationItem:hover {
+  border-color: var(--color-gray-300);
+}
+
+:global(.dark) .citationItem {
+  border-color: var(--color-gray-700);
+}
+
+:global(.dark) .citationItem:hover {
+  border-color: var(--color-gray-600);
+}
+
+.citationContent {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.citationInfo {
+  flex: 1;
+}
+
+.citationHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.citationIcon {
+  height: 1rem;
+  width: 1rem;
+  color: var(--color-gray-400);
+}
+
+.citationFilename {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-900);
+}
+
+:global(.dark) .citationFilename {
+  color: white;
+}
+
+.citationChunk {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+:global(.dark) .citationChunk {
+  color: var(--color-gray-400);
+}
+
+.citationVersion {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.citationVersionLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+:global(.dark) .citationVersionLabel {
+  color: var(--color-gray-400);
+}
+
+.versionBadge {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.versionBadgeLatest {
+  background-color: var(--color-success-100);
+  color: var(--color-success-600);
+}
+
+:global(.dark) .versionBadgeLatest {
+  background-color: var(--color-success-900);
+  color: var(--color-success-400);
+}
+
+.versionBadgeHistorical {
+  background-color: var(--color-info-100);
+  color: var(--color-info-600);
+}
+
+:global(.dark) .versionBadgeHistorical {
+  background-color: var(--color-info-900);
+  color: var(--color-info-400);
+}
+
+.versionBadgeGray {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+:global(.dark) .versionBadgeGray {
+  background-color: var(--color-gray-700);
+  color: var(--color-gray-400);
+}
+
+.versionStatus {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.versionStatusOutdated {
+  color: var(--color-warning-600);
+}
+
+:global(.dark) .versionStatusOutdated {
+  color: var(--color-warning-400);
+}
+
+/* Additional classes for complete migration */
+.chevronIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-left: var(--space-2);
+}
+
+.confidenceText {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+:global(.dark) .confidenceText {
+  color: var(--color-gray-400);
+}
+
+.arrowText {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-400);
+}
+
+.versionStatusLatest {
+  color: var(--color-success-600);
+}
+
+:global(.dark) .versionStatusLatest {
+  color: var(--color-success-400);
+}
+
+.citationPath {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  margin-bottom: var(--space-2);
+}
+
+:global(.dark) .citationPath {
+  color: var(--color-gray-400);
+}
+
+.citationExcerpt {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-lg);
+}
+
+:global(.dark) .citationExcerpt {
+  background-color: var(--color-gray-700);
+}
+
+.citationExcerptText {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-700);
+}
+
+:global(.dark) .citationExcerptText {
+  color: var(--color-gray-300);
+}
+
+.citationAction {
+  margin-left: var(--space-4);
+  padding: var(--space-2);
+  color: var(--color-gray-400);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.citationAction:hover {
+  color: var(--color-gray-600);
+}
+
+:global(.dark) .citationAction:hover {
+  color: var(--color-gray-300);
+}
+
+.citationActionIcon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.citationsFooter {
+  padding: var(--space-6);
+  padding-top: var(--space-4);
+}
+
+.citationsFooterText {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+}
+
+:global(.dark) .citationsFooterText {
+  color: var(--color-gray-400);
+}
+
+.helpCard {
+  background-color: var(--color-info-50);
+  border: 1px solid var(--color-info-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+:global(.dark) .helpCard {
+  background-color: var(--color-info-900);
+  border-color: var(--color-info-800);
+}
+
+.helpTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-info-900);
+  margin-bottom: var(--space-2);
+}
+
+:global(.dark) .helpTitle {
+  color: var(--color-info-100);
+}
+
+.helpList {
+  font-size: var(--font-size-sm);
+  color: var(--color-info-700);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+:global(.dark) .helpList {
+  color: var(--color-info-300);
+}

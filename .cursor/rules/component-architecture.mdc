@@ -1,0 +1,297 @@
+---
+description: Component architecture and file organization patterns
+globs: *.tsx,*.ts
+---
+
+# Component Architecture Guide
+
+## Project Structure
+
+### Main Components
+- [src/components/App.tsx](mdc:src/components/App.tsx) - Root application component
+- [src/components/Button.tsx](mdc:src/components/Button.tsx) - Reusable button component
+- [src/components/ProjectsInterface.tsx](mdc:src/components/ProjectsInterface.tsx) - Project management
+- [src/components/IndexingInterface.tsx](mdc:src/components/IndexingInterface.tsx) - Document indexing
+- [src/components/QnAInterface.tsx](mdc:src/components/QnAInterface.tsx) - Question answering
+- [src/components/SearchInterface.tsx](mdc:src/components/SearchInterface.tsx) - Document search
+- [src/components/DocumentViewerModal.tsx](mdc:src/components/DocumentViewerModal.tsx) - Document preview
+- [src/components/SettingsInterface.tsx](mdc:src/components/SettingsInterface.tsx) - Application settings
+- [src/components/VersionHistoryInterface.tsx](mdc:src/components/VersionHistoryInterface.tsx) - Version tracking
+
+### Supporting Files
+- [src/types.ts](mdc:src/types.ts) - TypeScript type definitions
+- [src/types/css-modules.d.ts](mdc:src/types/css-modules.d.ts) - CSS module declarations
+
+## Component Patterns
+
+### Standard Component Structure
+```typescript
+import React, { useState, useEffect } from 'react';
+import { Icon1, Icon2 } from 'lucide-react';
+import { ComponentProps } from '../types';
+import Button from './Button';
+import styles from './ComponentName.module.css';
+
+interface ComponentNameProps {
+  // Define props interface
+  prop1: string;
+  prop2?: number;
+  onAction?: () => void;
+}
+
+const ComponentName: React.FC<ComponentNameProps> = ({
+  prop1,
+  prop2,
+  onAction,
+}) => {
+  // State declarations
+  const [state, setState] = useState<StateType>(initialValue);
+  
+  // Effects
+  useEffect(() => {
+    // Side effects
+  }, [dependencies]);
+  
+  // Event handlers
+  const handleAction = () => {
+    // Handle action
+  };
+  
+  // Render
+  return (
+    <div className={styles.container}>
+      {/* Component content */}
+    </div>
+  );
+};
+
+export default ComponentName;
+```
+
+### Interface Component Pattern
+Interface components are main application sections that handle specific functionality:
+
+```typescript
+interface InterfaceProps {
+  // Common props for interface components
+  tools?: MCPTool[];
+  projects?: Project[];
+  onProjectChange?: () => void;
+  onSwitchToSearch?: () => void;
+}
+
+const InterfaceComponent: React.FC<InterfaceProps> = ({
+  tools = [],
+  projects = [],
+  onProjectChange,
+  onSwitchToSearch,
+}) => {
+  // Interface-specific state and logic
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        {/* Header with title and actions */}
+      </div>
+      <div className={styles.content}>
+        {/* Main interface content */}
+      </div>
+    </div>
+  );
+};
+```
+
+## State Management Patterns
+
+### Local State
+```typescript
+// Simple state
+const [isLoading, setIsLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+
+// Complex state
+const [formData, setFormData] = useState({
+  name: '',
+  description: '',
+  settings: {}
+});
+
+// State updates
+const updateFormData = (field: string, value: any) => {
+  setFormData(prev => ({ ...prev, [field]: value }));
+};
+```
+
+### API Integration
+```typescript
+const fetchData = async () => {
+  setIsLoading(true);
+  setError(null);
+  
+  try {
+    const response = await fetch('/api/endpoint');
+    const data = await response.json();
+    
+    if (data.success) {
+      setData(data.data);
+    } else {
+      setError(data.error || 'Request failed');
+    }
+  } catch (err) {
+    setError('Network error');
+    console.error('API Error:', err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+## Event Handling Patterns
+
+### Form Handling
+```typescript
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    setError('Please fill in all required fields');
+    return;
+  }
+  
+  await submitForm();
+};
+
+const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+  setFormData(prev => ({ ...prev, [name]: value }));
+};
+```
+
+### Button Actions
+```typescript
+// Simple action
+<Button onClick={() => setShowModal(true)}>
+  Open Modal
+</Button>
+
+// Action with confirmation
+<Button 
+  onClick={() => {
+    if (window.confirm('Are you sure?')) {
+      handleDelete();
+    }
+  }}
+  variant="danger"
+>
+  Delete
+</Button>
+
+// Async action with loading
+<Button 
+  onClick={handleAsyncAction}
+  loading={isLoading}
+  disabled={!canSubmit}
+>
+  {isLoading ? 'Processing...' : 'Submit'}
+</Button>
+```
+
+## Modal Patterns
+
+### Modal State Management
+```typescript
+const [showModal, setShowModal] = useState(false);
+const [modalData, setModalData] = useState<ModalDataType | null>(null);
+
+const openModal = (data: ModalDataType) => {
+  setModalData(data);
+  setShowModal(true);
+};
+
+const closeModal = () => {
+  setShowModal(false);
+  setModalData(null);
+};
+```
+
+### Modal Structure
+```typescript
+{showModal && (
+  <div className={styles.modal}>
+    <div className={styles.modalBackdrop} onClick={closeModal} />
+    <div className={styles.modalContent}>
+      <div className={styles.modalHeader}>
+        <h2 className={styles.modalTitle}>Modal Title</h2>
+        <Button onClick={closeModal} variant="ghost" size="sm">
+          <X />
+        </Button>
+      </div>
+      <div className={styles.modalBody}>
+        {/* Modal content */}
+      </div>
+      <div className={styles.modalFooter}>
+        <Button variant="secondary" onClick={closeModal}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={handleSubmit}>
+          Save
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+```
+
+## Error Handling Patterns
+
+### Error Display
+```typescript
+{error && (
+  <div className={styles.errorAlert}>
+    <div className={styles.errorContent}>
+      <AlertCircle className={styles.errorIcon} />
+      <span className={styles.errorText}>{error}</span>
+    </div>
+  </div>
+)}
+```
+
+### Loading States
+```typescript
+{isLoading ? (
+  <div className={styles.loadingContainer}>
+    <div className={`${styles.loadingSpinner} loading-spinner`}></div>
+    <p className={styles.loadingText}>Loading...</p>
+  </div>
+) : (
+  <div className={styles.content}>
+    {/* Content */}
+  </div>
+)}
+```
+
+## Best Practices
+
+### Component Design
+1. **Single Responsibility**: Each component should have one clear purpose
+2. **Props Interface**: Always define TypeScript interfaces for props
+3. **Default Props**: Use default parameters for optional props
+4. **Event Handlers**: Use descriptive names for event handlers
+5. **State Management**: Keep state as local as possible
+
+### File Organization
+1. **One component per file**: Each component gets its own file
+2. **CSS Modules**: Each component has its own CSS module file
+3. **Type definitions**: Keep types in [src/types.ts](mdc:src/types.ts)
+4. **Import order**: React imports first, then third-party, then local
+
+### Performance
+1. **Memoization**: Use React.memo for expensive components
+2. **Callback optimization**: Use useCallback for event handlers passed to children
+3. **Effect dependencies**: Always include proper dependencies in useEffect
+4. **Conditional rendering**: Use early returns for loading/error states
+
+### Accessibility
+1. **Semantic HTML**: Use appropriate HTML elements
+2. **ARIA labels**: Add labels for screen readers
+3. **Keyboard navigation**: Ensure all interactive elements are keyboard accessible
+4. **Focus management**: Handle focus properly in modals and dynamic content

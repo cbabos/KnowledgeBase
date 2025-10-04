@@ -1,0 +1,228 @@
+---
+description: CSS Modules migration patterns and design system
+globs: *.tsx,*.ts,*.css
+---
+
+# CSS Modules Migration Guide
+
+## Overview
+The project has been migrated from Tailwind CSS to CSS Modules with a comprehensive design token system. All components now use scoped CSS classes instead of utility classes.
+
+## Design Token System
+
+### Token Files
+- **Main tokens**: [src/styles/tokens.css](mdc:src/styles/tokens.css)
+- **Base styles**: [src/styles/base.css](mdc:src/styles/base.css)
+- **Component styles**: [src/styles/components.css](mdc:src/styles/components.css)
+
+### CSS Variables Available
+```css
+/* Colors */
+--color-primary-500: #3b82f6;
+--color-gray-100: #f3f4f6;
+--color-error-500: #ef4444;
+--color-warning-500: #f59e0b;
+
+/* Spacing */
+--space-1: 0.25rem;
+--space-2: 0.5rem;
+--space-4: 1rem;
+--space-6: 1.5rem;
+
+/* Typography */
+--font-size-sm: 0.875rem;
+--font-size-base: 1rem;
+--font-size-lg: 1.125rem;
+
+/* Other */
+--radius-lg: 0.5rem;
+--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+--transition-base: 150ms ease-in-out;
+```
+
+## CSS Module Structure
+
+### File Naming
+- Component styles: `ComponentName.module.css`
+- Import pattern: `import styles from './ComponentName.module.css'`
+
+### Class Naming Conventions
+```css
+/* Container */
+.container { }
+
+/* Sections */
+.section { }
+.sectionHeader { }
+.sectionTitle { }
+
+/* Forms */
+.formGroup { }
+.formLabel { }
+.formInput { }
+.formSelect { }
+
+/* Buttons */
+.button { }
+.buttonPrimary { }
+.buttonSecondary { }
+
+/* States */
+.loading { }
+.error { }
+.success { }
+```
+
+## Migration Patterns
+
+### Before (Tailwind)
+```tsx
+<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+    Title
+  </h2>
+</div>
+```
+
+### After (CSS Modules)
+```tsx
+<div className={styles.section}>
+  <h2 className={styles.sectionTitle}>
+    Title
+  </h2>
+</div>
+```
+
+### CSS Module Styles
+```css
+.section {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-gray-200);
+  padding: var(--space-6);
+}
+
+.dark .section {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+  margin-bottom: var(--space-4);
+}
+
+.dark .sectionTitle {
+  color: white;
+}
+```
+
+## Component Migration Checklist
+
+### ✅ Completed Components
+- [src/components/App.tsx](mdc:src/components/App.tsx)
+- [src/components/ProjectsInterface.tsx](mdc:src/components/ProjectsInterface.tsx)
+- [src/components/IndexingInterface.tsx](mdc:src/components/IndexingInterface.tsx)
+- [src/components/QnAInterface.tsx](mdc:src/components/QnAInterface.tsx)
+- [src/components/SearchInterface.tsx](mdc:src/components/SearchInterface.tsx)
+- [src/components/DocumentViewerModal.tsx](mdc:src/components/DocumentViewerModal.tsx)
+- [src/components/Button.tsx](mdc:src/components/Button.tsx)
+
+### Migration Steps
+1. **Create CSS Module file**: `ComponentName.module.css`
+2. **Import styles**: `import styles from './ComponentName.module.css'`
+3. **Replace Tailwind classes**: Convert utility classes to CSS module classes
+4. **Use design tokens**: Reference CSS variables for consistency
+5. **Add dark mode support**: Include `.dark` selectors where needed
+6. **Test build**: Ensure no Tailwind classes remain
+
+## Common Patterns
+
+### Form Elements
+```css
+.formInput {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-900);
+  background-color: white;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px var(--color-primary-500);
+}
+
+.dark .formInput {
+  color: white;
+  background-color: var(--color-gray-700);
+  border-color: var(--color-gray-600);
+}
+```
+
+### Modal Structure
+```css
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modalContent {
+  position: relative;
+  background-color: white;
+  width: 100%;
+  max-width: 28rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-gray-200);
+  overflow: hidden;
+}
+```
+
+## TypeScript Support
+
+### CSS Module Declarations
+File: [src/types/css-modules.d.ts](mdc:src/types/css-modules.d.ts)
+```typescript
+declare module '*.module.css' {
+  const classes: { [key: string]: string };
+  export default classes;
+}
+```
+
+### Usage in Components
+```typescript
+import styles from './Component.module.css';
+
+// TypeScript will provide autocomplete for class names
+<div className={styles.container}>
+  <h1 className={styles.title}>Title</h1>
+</div>
+```
+
+## Best Practices
+
+1. **Use design tokens** instead of hardcoded values
+2. **Follow naming conventions** for consistency
+3. **Include dark mode support** for all components
+4. **Group related styles** logically in CSS files
+5. **Use semantic class names** that describe purpose, not appearance
+6. **Test in both light and dark modes**
+7. **Ensure responsive design** with proper breakpoints

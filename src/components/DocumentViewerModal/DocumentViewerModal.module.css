@@ -1,0 +1,213 @@
+/* Document Viewer Modal Component Styles */
+@import '../../styles/tokens.css';
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.content {
+  position: relative;
+  background-color: white;
+  width: 100%;
+  max-width: 64rem;
+  max-height: 85vh;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-gray-200);
+  overflow: hidden;
+}
+
+:global(.dark) .content {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-700);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+:global(.dark) .header {
+  border-bottom-color: var(--color-gray-700);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.headerIcon {
+  height: 1.25rem;
+  width: 1.25rem;
+  color: var(--color-gray-400);
+}
+
+.headerTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+:global(.dark) .headerTitle {
+  color: white;
+}
+
+.versionBadge {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.versionBadgeLatest {
+  color: var(--color-success-700);
+  background-color: var(--color-success-100);
+}
+
+:global(.dark) .versionBadgeLatest {
+  color: var(--color-success-300);
+  background-color: var(--color-success-900);
+}
+
+.versionBadgeHistorical {
+  color: var(--color-info-700);
+  background-color: var(--color-info-100);
+}
+
+:global(.dark) .versionBadgeHistorical {
+  color: var(--color-info-300);
+  background-color: var(--color-info-900);
+}
+
+.versionBadgeGray {
+  color: var(--color-gray-700);
+  background-color: var(--color-gray-100);
+}
+
+:global(.dark) .versionBadgeGray {
+  color: var(--color-gray-300);
+  background-color: var(--color-gray-700);
+}
+
+.closeButton {
+  padding: var(--space-2);
+  color: var(--color-gray-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.closeButton:hover {
+  color: var(--color-gray-700);
+}
+
+:global(.dark) .closeButton {
+  color: var(--color-gray-400);
+}
+
+:global(.dark) .closeButton:hover {
+  color: var(--color-gray-200);
+}
+
+.closeIcon {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+.meta {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+:global(.dark) .meta {
+  color: var(--color-gray-400);
+  border-bottom-color: var(--color-gray-700);
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+}
+
+.metaIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: var(--space-1);
+}
+
+.body {
+  padding: var(--space-4);
+  overflow: auto;
+  max-height: calc(85vh - 120px);
+}
+
+.loading {
+  text-align: center;
+  color: var(--color-gray-500);
+}
+
+:global(.dark) .loading {
+  color: var(--color-gray-400);
+}
+
+.error {
+  color: var(--color-error-600);
+  font-size: var(--font-size-sm);
+}
+
+:global(.dark) .error {
+  color: var(--color-error-400);
+}
+
+.contentArea {
+  max-width: none;
+  color: var(--color-gray-700);
+  line-height: var(--line-height-relaxed);
+}
+
+:global(.dark) .contentArea {
+  color: var(--color-gray-300);
+}
+
+.contentMarkdown {
+  max-width: none;
+  color: var(--color-gray-700);
+  line-height: var(--line-height-relaxed);
+}
+
+:global(.dark) .contentMarkdown {
+  color: var(--color-gray-300);
+}
+
+.contentText {
+  white-space: pre-wrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-800);
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+:global(.dark) .contentText {
+  color: var(--color-gray-200);
+}

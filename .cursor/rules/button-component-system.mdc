@@ -1,0 +1,123 @@
+---
+description: Button component system and usage patterns
+globs: *.tsx,*.ts
+---
+
+# Button Component System
+
+## Overview
+The project uses a comprehensive Button component system located at [src/components/Button.tsx](mdc:src/components/Button.tsx) with corresponding styles in [src/components/Button.module.css](mdc:src/components/Button.module.css).
+
+## Button Component Usage
+
+### Import
+```typescript
+import Button from './Button';
+```
+
+### Basic Usage
+```typescript
+<Button variant="primary" onClick={handleClick}>
+  Click Me
+</Button>
+```
+
+### Available Variants
+- `primary`: Main action buttons (blue background)
+- `secondary`: Secondary actions (gray background)
+- `danger`: Destructive actions (red background)
+- `warning`: Warning actions (yellow background)
+- `ghost`: Subtle actions (transparent with border)
+
+### Available Sizes
+- `sm`: Small buttons for compact spaces
+- `md`: Medium buttons (default)
+- `lg`: Large buttons for prominent actions
+
+### Icon Support
+```typescript
+// Left icon
+<Button leftIcon={Plus} variant="primary">Add Item</Button>
+
+// Right icon
+<Button rightIcon={ArrowRight} variant="primary">Continue</Button>
+
+// Icon only
+<Button variant="ghost" size="sm" title="Edit">
+  <Edit2 />
+</Button>
+```
+
+### Loading State
+```typescript
+<Button 
+  variant="primary" 
+  loading={isLoading}
+  leftIcon={Send}
+>
+  {isLoading ? 'Sending...' : 'Send'}
+</Button>
+```
+
+### Full Width
+```typescript
+<Button variant="primary" fullWidth>
+  Full Width Button
+</Button>
+```
+
+## Migration Guidelines
+
+### Replace Old Button Patterns
+- **Before**: `<button className={styles.buttonPrimary}>Text</button>`
+- **After**: `<Button variant="primary">Text</Button>`
+
+### Action Buttons
+- **Before**: `<button className={styles.actionButton}>`
+- **After**: `<Button variant="ghost" size="sm">`
+
+### Modal Buttons
+- **Cancel**: `<Button variant="secondary">Cancel</Button>`
+- **Submit**: `<Button variant="primary" type="submit">Submit</Button>`
+
+## Best Practices
+
+1. **Always use the Button component** instead of raw `<button>` elements
+2. **Choose appropriate variants** based on action importance
+3. **Use loading states** for async operations
+4. **Include icons** for better UX when appropriate
+5. **Provide meaningful titles** for icon-only buttons
+6. **Use consistent sizing** across similar actions
+
+## Common Patterns
+
+### Form Actions
+```typescript
+<div className={styles.modalFooter}>
+  <Button variant="secondary" onClick={onCancel}>
+    Cancel
+  </Button>
+  <Button variant="primary" type="submit">
+    Save
+  </Button>
+</div>
+```
+
+### List Item Actions
+```typescript
+<div className={styles.itemActions}>
+  <Button variant="ghost" size="sm" title="Edit">
+    <Edit2 />
+  </Button>
+  <Button variant="danger" size="sm" title="Delete">
+    <Trash2 />
+  </Button>
+</div>
+```
+
+### Primary Actions
+```typescript
+<Button variant="primary" leftIcon={Plus} onClick={handleAdd}>
+  Add New Item
+</Button>
+```

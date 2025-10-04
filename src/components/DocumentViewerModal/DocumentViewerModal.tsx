@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { X, FileText, Calendar, Folder } from 'lucide-react';
 import { marked } from 'marked';
+import Button from '../common/Button';
+import styles from './DocumentViewerModal.module.css';
 
 interface DocumentViewerModalProps {
   documentId: string;
@@ -68,68 +70,58 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   const renderedHtml = isMarkdown ? marked.parse(content || '') : '';
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center'>
-      <div className='absolute inset-0 bg-black/50' onClick={onClose} />
-      <div className='relative bg-white dark:bg-gray-800 w-full max-w-4xl max-h-[85vh] rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden'>
-        <div className='flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700'>
-          <div className='flex items-center space-x-2'>
-            <FileText className='h-5 w-5 text-gray-400' />
-            <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-              {filename}
-            </h3>
+    <div className={styles.modal}>
+      <div className={styles.backdrop} onClick={onClose} />
+      <div className={styles.content}>
+        <div className={styles.header}>
+          <div className={styles.headerLeft}>
+            <FileText className={styles.headerIcon} />
+            <h3 className={styles.headerTitle}>{filename}</h3>
             {typeof usedVersion === 'number' && (
               <span
-                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                className={`${styles.versionBadge} ${
                   isLatest
-                    ? 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/20'
-                    : 'text-blue-700 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/20'
+                    ? styles.versionBadgeLatest
+                    : styles.versionBadgeHistorical
                 }`}
               >
                 v{usedVersion}
               </span>
             )}
             {typeof latestVersion === 'number' && !isLatest && (
-              <span className='px-2 py-0.5 rounded-full text-xs font-medium text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-700'>
+              <span
+                className={`${styles.versionBadge} ${styles.versionBadgeGray}`}
+              >
                 Latest: v{latestVersion}
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className='p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-          >
-            <X className='h-5 w-5' />
-          </button>
+          <Button onClick={onClose} variant='ghost' size='sm'>
+            <X />
+          </Button>
         </div>
-        <div className='px-4 py-2 text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-4 border-b border-gray-200 dark:border-gray-700'>
-          <div className='flex items-center'>
-            <Folder className='h-4 w-4 mr-1' />
+        <div className={styles.meta}>
+          <div className={styles.metaItem}>
+            <Folder className={styles.metaIcon} />
             {path}
           </div>
-          <div className='flex items-center'>
-            <Calendar className='h-4 w-4 mr-1' />
+          <div className={styles.metaItem}>
+            <Calendar className={styles.metaIcon} />
             {formatDate(modifiedAt)}
           </div>
         </div>
-        <div className='p-4 overflow-auto max-h-[calc(85vh-120px)]'>
-          {isLoading && (
-            <div className='text-center text-gray-500 dark:text-gray-400'>
-              Loading...
-            </div>
-          )}
-          {error && (
-            <div className='text-red-600 dark:text-red-400 text-sm'>
-              {error}
-            </div>
-          )}
+        <div className={styles.body}>
+          {isLoading && <div className={styles.loading}>Loading...</div>}
+          {error && <div className={styles.error}>{error}</div>}
           {!isLoading && !error && (
-            <div className='prose prose-sm max-w-none dark:prose-invert'>
+            <div className={styles.contentArea}>
               {isMarkdown ? (
-                <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+                <div
+                  className={styles.contentMarkdown}
+                  dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                />
               ) : (
-                <pre className='whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200'>
-                  {content}
-                </pre>
+                <pre className={styles.contentText}>{content}</pre>
               )}
             </div>
           )}

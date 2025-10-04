@@ -51,10 +51,11 @@ description: React and TypeScript coding standards and best practices
 - **Type Safety**: Use interfaces from [src/types.ts](mdc:src/types.ts) for API responses
 
 ## Styling Standards
-- **Tailwind CSS**: Use Tailwind classes for styling
-- **Dark Mode**: Support dark mode with `dark:` prefixes
-- **Responsive Design**: Use responsive prefixes (`sm:`, `md:`, `lg:`)
-- **Component Classes**: Use consistent spacing and color schemes
+- **CSS Modules**: Use CSS Modules for component-scoped styling
+- **Design Tokens**: Use design tokens from [src/styles/tokens.css](mdc:src/styles/tokens.css)
+- **Dark Mode**: Support dark mode with `.dark` selectors
+- **Component Classes**: Use consistent naming conventions and design tokens
+- **Button Component**: Use the reusable Button component from [src/components/Button.tsx](mdc:src/components/Button.tsx)
 
 ## Component Organization
 - **File Structure**: One component per file in [src/components/](mdc:src/components/)

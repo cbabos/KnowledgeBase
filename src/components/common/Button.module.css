@@ -1,0 +1,222 @@
+/* Button Component Styles */
+@import '../../styles/tokens.css';
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  transition: all var(--transition-base);
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  position: relative;
+  outline: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sizes */
+.buttonSm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  min-height: 2rem;
+}
+
+.buttonMd {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  min-height: 2.5rem;
+}
+
+.buttonLg {
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-base);
+  min-height: 3rem;
+}
+
+/* Variants */
+.buttonPrimary {
+  background-color: var(--color-primary-500);
+  color: white;
+  border-color: var(--color-primary-500);
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background-color: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+}
+
+.buttonPrimary:active:not(:disabled) {
+  background-color: var(--color-primary-700);
+  border-color: var(--color-primary-700);
+}
+
+.buttonSecondary {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border-color: var(--color-gray-300);
+}
+
+.buttonSecondary:hover:not(:disabled) {
+  background-color: var(--color-gray-200);
+  border-color: var(--color-gray-400);
+}
+
+.buttonSecondary:active:not(:disabled) {
+  background-color: var(--color-gray-300);
+  border-color: var(--color-gray-500);
+}
+
+:global(.dark) .buttonSecondary {
+  background-color: var(--color-gray-700);
+  color: var(--color-gray-300);
+  border-color: var(--color-gray-600);
+}
+
+:global(.dark) .buttonSecondary:hover:not(:disabled) {
+  background-color: var(--color-gray-600);
+  border-color: var(--color-gray-500);
+}
+
+:global(.dark) .buttonSecondary:active:not(:disabled) {
+  background-color: var(--color-gray-500);
+  border-color: var(--color-gray-400);
+}
+
+.buttonDanger {
+  background-color: var(--color-error-500);
+  color: white;
+  border-color: var(--color-error-500);
+}
+
+.buttonDanger:hover:not(:disabled) {
+  background-color: var(--color-error-600);
+  border-color: var(--color-error-600);
+}
+
+.buttonDanger:active:not(:disabled) {
+  background-color: var(--color-error-700);
+  border-color: var(--color-error-700);
+}
+
+.buttonWarning {
+  background-color: var(--color-warning-500);
+  color: white;
+  border-color: var(--color-warning-500);
+}
+
+.buttonWarning:hover:not(:disabled) {
+  background-color: var(--color-warning-600);
+  border-color: var(--color-warning-600);
+}
+
+.buttonWarning:active:not(:disabled) {
+  background-color: var(--color-warning-700);
+  border-color: var(--color-warning-700);
+}
+
+.buttonGhost {
+  background-color: transparent;
+  color: var(--color-gray-700);
+  border-color: var(--color-gray-300);
+}
+
+.buttonGhost:hover:not(:disabled) {
+  background-color: var(--color-gray-50);
+  border-color: var(--color-gray-400);
+}
+
+.buttonGhost:active:not(:disabled) {
+  background-color: var(--color-gray-100);
+  border-color: var(--color-gray-500);
+}
+
+:global(.dark) .buttonGhost {
+  color: var(--color-gray-300);
+  border-color: var(--color-gray-600);
+}
+
+:global(.dark) .buttonGhost:hover:not(:disabled) {
+  background-color: var(--color-gray-800);
+  border-color: var(--color-gray-500);
+}
+
+:global(.dark) .buttonGhost:active:not(:disabled) {
+  background-color: var(--color-gray-700);
+  border-color: var(--color-gray-400);
+}
+
+/* Full width */
+.buttonFullWidth {
+  width: 100%;
+}
+
+/* Loading state */
+.buttonLoading {
+  cursor: not-allowed;
+}
+
+.buttonSpinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Icon styles */
+.buttonIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.buttonSm .buttonIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.buttonLg .buttonIcon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Text styles */
+.buttonText {
+  flex: 1;
+  text-align: center;
+}
+
+/* Icon-only button */
+.button:not(:has(.buttonText)) {
+  aspect-ratio: 1;
+  padding: var(--space-2);
+}
+
+.buttonSm:not(:has(.buttonText)) {
+  padding: var(--space-1);
+}
+
+.buttonLg:not(:has(.buttonText)) {
+  padding: var(--space-3);
+}
