@@ -1,0 +1,48 @@
+---
+alwaysApply: true
+description: Knowledge Base project structure and architecture guide
+---
+
+# Knowledge Base Project Structure
+
+This is a full-stack personal knowledge retrieval system with a React frontend and Rust backend.
+
+## Project Architecture
+
+### Frontend (React + TypeScript + Vite)
+- **Entry Point**: [src/index.tsx](mdc:src/index.tsx) - Main React application entry
+- **Main App**: [src/App.tsx](mdc:src/App.tsx) - Root component with tab navigation
+- **Types**: [src/types.ts](mdc:src/types.ts) - TypeScript interfaces for API communication
+- **Components**: [src/components/](mdc:src/components/) - React components for different interfaces
+- **Styling**: [src/index.css](mdc:src/index.css) - Global styles with Tailwind CSS
+- **Configuration**: [package.json](mdc:package.json), [vite.config.ts](mdc:vite.config.ts), [tailwind.config.js](mdc:tailwind.config.js)
+
+### Backend (Rust + Actix Web)
+- **Main Entry**: [backend/src/main.rs](mdc:backend/src/main.rs) - Server startup
+- **Configuration**: [backend/src/config.rs](mdc:backend/src/config.rs) - App configuration management
+- **Database**: [backend/src/database.rs](mdc:backend/src/database.rs) - SQLite database operations
+- **API Server**: [backend/src/server.rs](mdc:backend/src/server.rs) - HTTP API endpoints
+- **Search Engine**: [backend/src/search.rs](mdc:backend/src/search.rs) - Full-text search functionality
+- **MCP Integration**: [backend/src/mcp.rs](mdc:backend/src/mcp.rs) - Model Context Protocol tools
+- **Ollama Integration**: [backend/src/ollama.rs](mdc:backend/src/ollama.rs) - AI model communication
+- **Corpus Management**: [backend/src/corpus.rs](mdc:backend/src/corpus.rs) - Document indexing and management
+
+### CLI Tool
+- **CLI Entry**: [cli/src/main.rs](mdc:cli/src/main.rs) - Command-line interface
+
+### Documentation
+- **Requirements**: [doc/](mdc:doc/) - Business requirements and technical specifications
+- **Epics**: [doc/Epics_Index.md](mdc:doc/Epics_Index.md) - Feature epics overview
+
+## Key Features
+1. **Q&A Interface** - AI-powered question answering with RAG
+2. **Search Interface** - Full-text search across indexed documents
+3. **Project Management** - Organize documents into projects
+4. **Indexing Interface** - Manage document corpus and indexing
+5. **Settings Interface** - Configure application settings
+6. **Version History** - Track document changes over time
+
+## API Communication
+- Frontend communicates with backend via REST API on port 8080
+- Main endpoints: `/api/tools`, `/api/projects`, `/api/search`, `/api/qa`
+- Backend serves static files from `build/` directory in production

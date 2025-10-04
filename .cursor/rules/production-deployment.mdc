@@ -1,0 +1,53 @@
+---
+description: Production deployment and build configuration
+---
+
+# Production Deployment
+
+## Build Process
+- **Frontend Build**: `npm run build` creates optimized production build in `build/` directory
+- **Backend Build**: `cargo build --release` creates optimized Rust binary
+- **Build Script**: Use [build.sh](mdc:build.sh) for automated full-stack builds
+- **Asset Optimization**: Vite optimizes and bundles all frontend assets
+
+## Production Server Configuration
+- **Single Server**: Warp server serves both API and static files on port 8080
+- **Asset Serving**: Static files served from `/assets/` and `/static/` paths
+- **API Endpoints**: All API routes under `/api/` prefix
+- **Fallback Routing**: React app served for non-API, non-asset routes
+
+## Static File Serving
+- **Assets Path**: `/assets/` serves JavaScript and CSS bundles from `build/assets/`
+- **Static Path**: `/static/` serves additional static files from `build/static/`
+- **Manifest Files**: Serves `manifest.json`, `asset-manifest.json`, `favicon.ico`
+- **React Fallback**: Serves `index.html` for client-side routing
+
+## Production Deployment Steps
+1. **Build Frontend**: `npm run build`
+2. **Build Backend**: `cd backend && cargo build --release`
+3. **Start Server**: `./backend/target/release/knowledge-base-backend`
+4. **Access App**: Open `http://localhost:8080`
+
+## Server Configuration
+- **Port**: Configurable via [backend/src/config.rs](mdc:backend/src/config.rs)
+- **CORS**: Enabled for all origins in production
+- **Database**: SQLite database file for data persistence
+- **Logging**: Structured logging with configurable levels
+
+## Troubleshooting Production Issues
+- **White Screen**: Check if assets are being served from `/assets/` path
+- **404 Errors**: Verify static file paths in [backend/src/server.rs](mdc:backend/src/server.rs)
+- **API Errors**: Check backend logs and database connectivity
+- **Port Conflicts**: Ensure port 8080 is available or change in config
+
+## Performance Considerations
+- **Release Build**: Always use `--release` flag for production backend
+- **Asset Optimization**: Vite handles minification and bundling
+- **Database**: SQLite provides good performance for single-user applications
+- **Memory Usage**: Monitor memory usage for large document collections
+
+## Security Notes
+- **CORS**: Currently allows all origins - restrict in production if needed
+- **File Access**: Server only serves files from designated build directories
+- **API Protection**: Consider adding authentication for production use
+- **Input Validation**: All API endpoints validate input parameters

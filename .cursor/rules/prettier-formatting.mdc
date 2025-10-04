@@ -1,0 +1,65 @@
+---
+globs: *.ts,*.tsx,*.js,*.jsx,*.json,*.css,*.md
+description: Prettier code formatting rules and workflow
+---
+
+# Prettier Code Formatting
+
+## Configuration
+- **Config File**: [.prettierrc](mdc:.prettierrc) - Main Prettier configuration
+- **Ignore File**: [.prettierignore](mdc:.prettierignore) - Files to exclude from formatting
+- **Package Scripts**: Formatting commands in [package.json](mdc:package.json)
+
+## Formatting Rules
+- **Single Quotes**: Use single quotes for strings and JSX attributes
+- **Semicolons**: Always include semicolons
+- **Line Width**: Maximum 80 characters per line
+- **Indentation**: 2 spaces, no tabs
+- **Trailing Commas**: Add trailing commas in ES5-compatible locations
+- **Arrow Functions**: Avoid parentheses around single parameters
+- **Bracket Spacing**: Add spaces inside object brackets
+- **JSX Quotes**: Use single quotes in JSX attributes
+
+## Available Commands
+```bash
+# Format all source files
+npm run format:src
+
+# Check if files need formatting
+npm run format:check:src
+
+# Format everything (including config files)
+npm run format
+
+# Check all files formatting
+npm run format:check
+```
+
+## Pre-commit Hooks
+- **Husky**: Pre-commit hooks configured in [.husky/pre-commit](mdc:.husky/pre-commit)
+- **lint-staged**: Automatically formats staged files before commit
+- **Automatic Formatting**: Code is automatically formatted on commit
+
+## File Types Covered
+- **TypeScript**: `.ts`, `.tsx` files
+- **JavaScript**: `.js`, `.jsx` files
+- **JSON**: `.json` files
+- **CSS**: `.css` files
+- **Markdown**: `.md` files
+
+## Workflow Integration
+1. **Development**: Code is automatically formatted on save (if IDE configured)
+2. **Pre-commit**: Files are formatted before commit via Husky hooks
+3. **CI/CD**: Use `npm run format:check` to verify formatting in CI
+4. **Manual**: Run `npm run format:src` to format all source files
+
+## IDE Integration
+- **VS Code**: Install Prettier extension and enable format on save
+- **Cursor**: Prettier integration should work automatically
+- **Other IDEs**: Configure Prettier as formatter for supported file types
+
+## Best Practices
+- **Consistent Style**: All team members use the same formatting rules
+- **No Manual Formatting**: Let Prettier handle all formatting decisions
+- **Pre-commit Checks**: Never commit unformatted code
+- **CI Validation**: Include formatting checks in continuous integration

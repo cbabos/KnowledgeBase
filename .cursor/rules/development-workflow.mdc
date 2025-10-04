@@ -1,0 +1,59 @@
+---
+description: Development workflow, testing, and deployment practices
+---
+
+# Development Workflow
+
+## Development Setup
+- **Frontend**: React + TypeScript + Vite development server
+- **Backend**: Rust + Warp web server on port 8080
+- **Database**: SQLite database for local development
+- **Start Scripts**: Use [start.sh](mdc:start.sh) for full-stack development
+
+## Code Quality
+- **Prettier**: Automatic code formatting on commit via Husky hooks
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Code linting (if configured)
+- **Testing**: Vitest for frontend testing, Rust built-in testing for backend
+
+## Git Workflow
+- **Pre-commit Hooks**: Automatic formatting via [.husky/pre-commit](mdc:.husky/pre-commit)
+- **Commit Messages**: Use conventional commit format
+- **Branch Strategy**: Feature branches for new development
+- **Code Review**: Review all changes before merging
+
+## Testing Strategy
+- **Frontend Tests**: Unit tests in [src/__tests__/](mdc:src/__tests__/)
+- **Backend Tests**: Integration tests in [backend/tests/](mdc:backend/tests/)
+- **API Tests**: Test all API endpoints
+- **E2E Tests**: Consider adding end-to-end tests for critical flows
+
+## Build Process
+- **Frontend Build**: `npm run build` creates production build in `build/`
+- **Backend Build**: `cargo build --release` for production
+- **Build Script**: [build.sh](mdc:build.sh) for automated builds
+- **Static Serving**: Backend serves frontend static files in production
+
+## Environment Configuration
+- **Development**: Local development with hot reload
+- **Production**: Optimized builds with static file serving
+- **Configuration**: Environment-specific config via [backend/src/config.rs](mdc:backend/src/config.rs)
+- **Secrets**: Store sensitive data in environment variables
+
+## Performance Monitoring
+- **Frontend**: Monitor bundle size and loading performance
+- **Backend**: Monitor API response times and memory usage
+- **Database**: Monitor query performance and connection usage
+- **Logging**: Structured logging for debugging and monitoring
+
+## Deployment
+- **Static Files**: Frontend built to `build/` directory
+- **Backend Binary**: Rust binary serves both API and static files
+- **Database**: SQLite database file for data persistence
+- **Configuration**: TOML config file for runtime settings
+
+## Documentation
+- **Code Comments**: Document complex logic and public APIs
+- **README**: Keep [README.md](mdc:README.md) updated with setup instructions
+- **API Docs**: Document API endpoints and request/response formats
+- **Architecture**: Document system architecture and design decisions

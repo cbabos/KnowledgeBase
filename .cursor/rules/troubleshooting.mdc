@@ -1,0 +1,115 @@
+---
+description: Common issues and troubleshooting guide for the Knowledge Base application
+---
+
+# Troubleshooting Guide
+
+## Production Build Issues
+
+### White Screen in Production
+**Symptoms**: App loads but shows blank white screen
+**Causes & Solutions**:
+- **Asset Path Mismatch**: Ensure server serves assets from `/assets/` path
+- **JavaScript Errors**: Check browser console for errors
+- **Missing Assets**: Verify `build/assets/` directory contains JS/CSS files
+- **Server Configuration**: Check [backend/src/server.rs](mdc:backend/src/server.rs) static file serving
+
+### Asset Loading Errors
+**Symptoms**: 404 errors for JavaScript/CSS files
+**Solutions**:
+- Verify Warp server includes `/assets/` path in static file serving
+- Check that React app fallback excludes `/assets/` from routing
+- Ensure build directory structure matches server expectations
+
+## Development Issues
+
+### Port Conflicts
+**Symptoms**: "Address already in use" errors
+**Solutions**:
+- Kill existing processes: `lsof -ti:8080 | xargs kill -9`
+- Check for running servers: `ps aux | grep knowledge-base-backend`
+- Use different port in [backend/src/config.rs](mdc:backend/src/config.rs)
+
+### Database Issues
+**Symptoms**: Database connection errors or migration failures
+**Solutions**:
+- Check database file permissions: `chmod 644 knowledge_base.db`
+- Verify database path in configuration
+- Run database migrations: backend handles this automatically on startup
+
+## API Issues
+
+### CORS Errors
+**Symptoms**: Frontend can't connect to backend API
+**Solutions**:
+- Verify CORS configuration in [backend/src/server.rs](mdc:backend/src/server.rs)
+- Check that frontend proxy points to correct backend URL
+- Ensure both servers are running on expected ports
+
+### API Endpoint Errors
+**Symptoms**: 404 or 500 errors for API calls
+**Solutions**:
+- Check API route definitions in server.rs
+- Verify request/response types match [src/types.ts](mdc:src/types.ts)
+- Check backend logs for detailed error messages
+
+## Build Issues
+
+### Frontend Build Failures
+**Symptoms**: `npm run build` fails
+**Solutions**:
+- Clear node_modules: `rm -rf node_modules && npm install`
+- Check TypeScript errors: `npm run build` shows detailed errors
+- Verify all dependencies are installed
+
+### Backend Build Failures
+**Symptoms**: `cargo build` fails
+**Solutions**:
+- Update dependencies: `cargo update`
+- Check for Rust version compatibility
+- Review compiler warnings and errors
+
+## Performance Issues
+
+### Slow Loading
+**Symptoms**: App takes long time to load
+**Solutions**:
+- Use release build: `cargo build --release`
+- Check database size and query performance
+- Monitor memory usage during indexing
+
+### Memory Issues
+**Symptoms**: High memory usage or crashes
+**Solutions**:
+- Monitor during large document indexing
+- Check for memory leaks in long-running processes
+- Consider limiting concurrent operations
+
+## Common Commands
+
+### Debugging Commands
+```bash
+# Check server status
+curl -I http://localhost:8080
+
+# Test asset serving
+curl -I http://localhost:8080/assets/index-*.js
+
+# Check API health
+curl http://localhost:8080/api/health
+
+# View backend logs
+cd backend && cargo run
+```
+
+### Reset Commands
+```bash
+# Reset database
+rm backend/knowledge_base.db
+
+# Clean builds
+rm -rf build/ target/
+
+# Reset dependencies
+rm -rf node_modules/ && npm install
+```

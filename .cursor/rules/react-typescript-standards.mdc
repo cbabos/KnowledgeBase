@@ -1,0 +1,73 @@
+---
+globs: *.ts,*.tsx,*.js,*.jsx
+description: React and TypeScript coding standards and best practices
+---
+
+# React & TypeScript Coding Standards
+
+## Code Formatting
+- **Prettier**: All code must be formatted with Prettier using the configuration in [.prettierrc](mdc:.prettierrc)
+- **Single Quotes**: Use single quotes for strings and JSX attributes
+- **Semicolons**: Always use semicolons
+- **Line Width**: Maximum 80 characters per line
+- **Indentation**: 2 spaces, no tabs
+
+## TypeScript Standards
+- **Strict Types**: Always define explicit types for props, state, and function parameters
+- **Interface Definitions**: Use interfaces defined in [src/types.ts](mdc:src/types.ts) for API communication
+- **Type Imports**: Import types from the types file: `import { MCPTool, Project } from './types'`
+- **Generic Types**: Use proper generic constraints and avoid `any` type
+
+## React Component Standards
+- **Functional Components**: Use functional components with hooks
+- **Component Structure**: 
+  ```tsx
+  import React, { useState, useEffect } from 'react';
+  import { ComponentProps } from './types';
+  
+  interface Props {
+    // Define props interface
+  }
+  
+  function ComponentName({ prop1, prop2 }: Props) {
+    // Component logic
+    return (
+      // JSX
+    );
+  }
+  
+  export default ComponentName;
+  ```
+
+## State Management
+- **useState**: For local component state
+- **useEffect**: For side effects and API calls
+- **State Types**: Always type state variables: `const [items, setItems] = useState<Item[]>([])`
+
+## API Integration
+- **Fetch API**: Use native fetch for API calls
+- **Error Handling**: Always wrap API calls in try-catch blocks
+- **Loading States**: Implement loading states for async operations
+- **Type Safety**: Use interfaces from [src/types.ts](mdc:src/types.ts) for API responses
+
+## Styling Standards
+- **Tailwind CSS**: Use Tailwind classes for styling
+- **Dark Mode**: Support dark mode with `dark:` prefixes
+- **Responsive Design**: Use responsive prefixes (`sm:`, `md:`, `lg:`)
+- **Component Classes**: Use consistent spacing and color schemes
+
+## Component Organization
+- **File Structure**: One component per file in [src/components/](mdc:src/components/)
+- **Naming**: Use PascalCase for component names and files
+- **Props Interface**: Define props interface at the top of each component
+- **Default Exports**: Use default exports for components
+
+## Testing
+- **Test Files**: Place tests in [src/__tests__/](mdc:src/__tests__/)
+- **Testing Library**: Use React Testing Library for component tests
+- **Test Naming**: Use descriptive test names that explain the behavior
+
+## Performance
+- **Memoization**: Use React.memo for expensive components
+- **Dependency Arrays**: Always include proper dependencies in useEffect
+- **Event Handlers**: Use useCallback for event handlers passed to child components
