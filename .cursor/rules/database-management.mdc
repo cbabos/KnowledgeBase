@@ -1,0 +1,187 @@
+---
+globs: *.rs
+description: Database management, migration, and safety practices
+---
+
+# Database Management
+
+## 🚨 MANDATORY RULE: Never Delete Database First
+**CRITICAL**: Never delete the existing database file (`knowledge_base.db`) as the first step. Always attempt migration first to preserve user data.
+
+### Safe Database Operations
+1. **Migration First**: Always try database migration before any destructive operations
+2. **Backup Before Changes**: Create backups before schema modifications
+3. **Test Migrations**: Test migrations on copies of production data
+4. **Rollback Plan**: Have a rollback strategy for failed migrations
+
+## Database Configuration
+- **Database File**: SQLite database stored in [backend/knowledge_base.db](mdc:backend/knowledge_base.db)
+- **Configuration**: Database URL configured in [backend/src/config.rs](mdc:backend/src/config.rs)
+- **Migration System**: Automatic migrations handled by SQLx in [backend/src/database.rs](mdc:backend/src/database.rs)
+
+## Migration Best Practices
+
+### Safe Migration Process
+```rust
+// ✅ CORRECT: Always migrate first
+let db = Database::new(&config.database_url).await?;
+db.migrate().await?; // This handles schema updates safely
+
+// ❌ WRONG: Never delete database first
+// std::fs::remove_file("knowledge_base.db").unwrap(); // DON'T DO THIS
+```
+
+### Migration Commands
+- **Automatic**: Migrations run automatically on server startup
+- **Manual**: Use SQLx CLI for advanced migration management
+- **Version Control**: All schema changes should be versioned
+
+## Database Operations
+
+### Safe Operations
+- **Read Operations**: Always safe, no data loss risk
+- **Insert/Update**: Use transactions for atomicity
+- **Schema Changes**: Use proper migration scripts
+- **Data Cleanup**: Use soft deletes when possible
+
+### Risky Operations (Require Extra Care)
+- **Schema Drops**: Test thoroughly on copies first
+- **Data Deletion**: Always backup before bulk deletes
+- **Index Changes**: Can affect performance, test first
+- **Constraint Changes**: May fail on existing data
+
+## Backup and Recovery
+
+### Backup Strategy
+```bash
+# Create timestamped backup
+cp knowledge_base.db knowledge_base.db.backup.$(date +%Y%m%d_%H%M%S)
+
+# Create backup before major operations
+cp knowledge_base.db knowledge_base.db.pre_migration
+```
+
+### Recovery Process
+1. **Stop Server**: Ensure no active connections
+2. **Restore Backup**: Copy backup file to original location
+3. **Verify Data**: Check data integrity after restore
+4. **Restart Server**: Test application functionality
+
+## Database Schema Management
+
+### Schema Versioning
+- **Migration Files**: Store in `migrations/` directory
+- **Version Tracking**: SQLx tracks applied migrations
+- **Rollback Support**: Design migrations to be reversible when possible
+
+### Schema Changes
+```sql
+-- ✅ Safe: Add new columns with defaults
+ALTER TABLE documents ADD COLUMN new_field TEXT DEFAULT '';
+
+-- ⚠️ Risky: Drop columns (data loss)
+ALTER TABLE documents DROP COLUMN old_field;
+
+-- ✅ Safe: Add indexes
+CREATE INDEX idx_documents_path ON documents(path);
+```
+
+## Performance Considerations
+
+### Query Optimization
+- **Indexes**: Add indexes for frequently queried columns
+- **Query Analysis**: Use EXPLAIN QUERY PLAN for optimization
+- **Batch Operations**: Use transactions for multiple operations
+- **Connection Pooling**: SQLx handles connection pooling automatically
+
+### Maintenance
+- **VACUUM**: Run VACUUM periodically to reclaim space
+- **ANALYZE**: Update query statistics for better performance
+- **Size Monitoring**: Monitor database file size growth
+
+## Error Handling
+
+### Migration Errors
+```rust
+// Handle migration failures gracefully
+match db.migrate().await {
+    Ok(_) => info!("Database migrated successfully"),
+    Err(e) => {
+        error!("Migration failed: {}", e);
+        // Log error and potentially restore from backup
+        return Err(e);
+    }
+}
+```
+
+### Connection Errors
+- **Retry Logic**: Implement exponential backoff for connection failures
+- **Health Checks**: Monitor database connectivity
+- **Graceful Degradation**: Handle database unavailability
+
+## Development vs Production
+
+### Development
+- **Reset Database**: Safe to delete and recreate for testing
+- **Test Data**: Use fixtures and test databases
+- **Migration Testing**: Test all migrations in development first
+
+### Production
+- **Never Delete**: Never delete production database
+- **Backup First**: Always backup before any changes
+- **Staged Deployment**: Test migrations on staging environment
+- **Monitoring**: Monitor migration performance and success
+
+## Common Commands
+
+### Database Management
+```bash
+# Check database file
+ls -la backend/knowledge_base.db
+
+# Create backup
+cp backend/knowledge_base.db backend/knowledge_base.db.backup
+
+# Check database integrity
+sqlite3 backend/knowledge_base.db "PRAGMA integrity_check;"
+
+# View schema
+sqlite3 backend/knowledge_base.db ".schema"
+```
+
+### Migration Commands
+```bash
+# Generate new migration (if using SQLx CLI)
+sqlx migrate add migration_name
+
+# Run migrations manually
+sqlx migrate run
+
+# Check migration status
+sqlx migrate info
+```
+
+## Emergency Procedures
+
+### Database Corruption
+1. **Stop Application**: Prevent further corruption
+2. **Check Integrity**: Run integrity checks
+3. **Restore Backup**: Use most recent clean backup
+4. **Investigate Cause**: Identify what caused corruption
+
+### Migration Failure
+1. **Stop Server**: Prevent partial migration state
+2. **Restore Backup**: Restore to pre-migration state
+3. **Fix Migration**: Correct migration script
+4. **Test Fix**: Test corrected migration
+5. **Reapply**: Run corrected migration
+
+## Data Safety Checklist
+
+Before any database operation:
+- [ ] Backup current database
+- [ ] Test operation on copy first
+- [ ] Verify migration scripts
+- [ ] Plan rollback procedure
+- [ ] Monitor during operation
+- [ ] Verify data integrity after operation
