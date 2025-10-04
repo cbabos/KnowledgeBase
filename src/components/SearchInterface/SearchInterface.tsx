@@ -290,7 +290,9 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({
                             updateSearchState({
                               filters: {
                                 ...filters,
-                                file_types: newTypes.filter(t => t !== type),
+                                file_types: newTypes.filter(
+                                  (t: string) => t !== type
+                                ),
                               },
                             });
                           }
@@ -423,11 +425,13 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 <div className={styles.previewHeadings}>
                   <h4 className={styles.previewHeadingsTitle}>Headings:</h4>
                   <div className={styles.previewHeadingsList}>
-                    {selectedResult.document.headings.map((heading, index) => (
-                      <span key={index} className={styles.previewHeading}>
-                        {heading}
-                      </span>
-                    ))}
+                    {selectedResult.document.headings.map(
+                      (heading: string, index: number) => (
+                        <span key={index} className={styles.previewHeading}>
+                          {heading}
+                        </span>
+                      )
+                    )}
                   </div>
                 </div>
               )}

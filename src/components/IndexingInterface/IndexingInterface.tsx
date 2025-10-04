@@ -501,7 +501,7 @@ const IndexingInterface: React.FC<IndexingInterfaceProps> = ({ projects }) => {
                 Errors ({indexingResult.errors.length}):
               </h3>
               <div className={styles.errorsList}>
-                {indexingResult.errors.map((error, index) => (
+                {indexingResult.errors.map((error: string, index: number) => (
                   <div key={index} className={styles.errorItem}>
                     {error}
                   </div>

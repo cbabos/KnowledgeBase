@@ -307,7 +307,7 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({
                 </div>
 
                 <div className={styles.citationsList}>
-                  {answer.citations.map((citation, index) => (
+                  {answer.citations.map((citation: Citation, index: number) => (
                     <CitationPreview
                       key={index}
                       type='citation'
