@@ -88,6 +88,14 @@ cargo clippy
 
 ## Code Quality Standards
 
+### Pre-Commit Requirements
+**CRITICAL**: For every change you make, you MUST ensure:
+1. **Dev Server Runs**: The development server (`npm run dev`) starts without errors
+2. **Build is Flawless**: Production build (`npm run build`) completes successfully
+3. **TypeScript Clean**: No TypeScript compilation errors (`npx tsc --noEmit`)
+4. **Code is Stable**: All functionality works as expected
+5. **Ready for Commit**: Code is in a stable, working state before committing
+
 ### TypeScript Standards
 - **Strict Types**: Always define explicit types for props, state, and function parameters
 - **Interface Definitions**: Use interfaces defined in [src/types.ts](mdc:src/types.ts)
@@ -225,6 +233,32 @@ cargo test
 # Check bundle sizes
 npm run build && ls -la build/assets/
 ```
+
+### Pre-Commit Verification Checklist
+Before committing any changes, run these commands to ensure code quality:
+
+```bash
+# 1. TypeScript compilation check
+npx tsc --noEmit
+
+# 2. Production build test
+npm run build
+
+# 3. Dev server test (start and verify it runs)
+npm run dev &
+# Wait a few seconds, then test if server responds
+curl -s http://localhost:5173 > /dev/null && echo "Dev server OK" || echo "Dev server failed"
+
+# 4. Code formatting (if not using pre-commit hooks)
+npm run format:src
+
+# 5. Only commit if all above pass
+git add .
+git commit -m "descriptive commit message"
+git push origin main
+```
+
+**Failure to follow this process will result in broken builds and unstable code.**
 
 ## Performance Optimization
 
