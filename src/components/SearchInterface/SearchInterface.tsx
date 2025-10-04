@@ -439,7 +439,7 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({
               <div className={styles.previewContent}>
                 {selectedResult.document.extension.toLowerCase() === 'md' ? (
                   <div
-                    className={styles.previewContentMarkdown}
+                    className={`markdown-content ${styles.previewContentMarkdown}`}
                     dangerouslySetInnerHTML={{
                       __html: marked.parse(documentContent || ''),
                     }}

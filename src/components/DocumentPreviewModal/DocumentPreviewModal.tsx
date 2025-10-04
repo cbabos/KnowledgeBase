@@ -268,7 +268,7 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
               <>
                 {isMarkdown ? (
                   <div
-                    className={`${styles.contentMarkdown} ${isLoading ? styles.contentLoading : ''}`}
+                    className={`markdown-content ${styles.contentMarkdown} ${isLoading ? styles.contentLoading : ''}`}
                     dangerouslySetInnerHTML={{ __html: renderedHtml }}
                   />
                 ) : (

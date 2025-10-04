@@ -117,7 +117,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             <div className={styles.contentArea}>
               {isMarkdown ? (
                 <div
-                  className={styles.contentMarkdown}
+                  className={`markdown-content ${styles.contentMarkdown}`}
                   dangerouslySetInnerHTML={{ __html: renderedHtml }}
                 />
               ) : (
