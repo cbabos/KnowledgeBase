@@ -100,6 +100,11 @@ impl CorpusManager {
         Ok(result)
     }
 
+    // Expose single-file indexing for editor saves (EP12 autosave/versioning)
+    pub async fn index_single_file(&self, path: &Path, project_id: Option<&Uuid>) -> Result<()> {
+        self.index_file(path, project_id).await
+    }
+
     async fn index_file(&self, path: &Path, project_id: Option<&Uuid>) -> Result<()> {
         let metadata = fs::metadata(path)?;
         let modified_at = metadata.modified()?.into();

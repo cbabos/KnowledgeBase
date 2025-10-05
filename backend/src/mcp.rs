@@ -168,6 +168,19 @@ impl MCPServer {
                     }
                 }),
             },
+            MCPTool {
+                name: "save_note".to_string(),
+                description: "Save editor content to disk and create a new version".to_string(),
+                input_schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string"},
+                        "content": {"type": "string"},
+                        "project_id": {"type": "string", "format": "uuid"}
+                    },
+                    "required": ["path", "content"]
+                }),
+            },
         ]
     }
 
@@ -183,6 +196,7 @@ impl MCPServer {
             "get_retention_policy" => self.handle_get_retention_policy(request.arguments).await,
             "set_retention_policy" => self.handle_set_retention_policy(request.arguments).await,
             "purge_history" => self.handle_purge_history(request.arguments).await,
+            "save_note" => self.handle_save_note(request.arguments).await,
             _ => Ok(MCPResponse {
                 success: false,
                 data: None,
@@ -219,8 +233,21 @@ impl MCPServer {
         let id = Uuid::parse_str(id_str)?;
         
         if let Some(document) = self.db.get_document_by_id(&id).await? {
-            // Read the full file content
-            let content = std::fs::read_to_string(&document.path)?;
+            // Prefer stored snapshot for this specific version; fallback to reconstructed content
+            let content = if let Some(snapshot) = self.db.get_document_snapshot(&document.id).await? {
+                snapshot
+            } else {
+                // Reconstruct from indexed chunks for this specific version id
+                let chunks = self.db.get_index_entries_for_document(&document.id).await?;
+                if !chunks.is_empty() {
+                    let mut ordered = chunks;
+                    ordered.sort_by_key(|c| c.chunk_id);
+                    ordered.iter().map(|c| c.chunk_text.as_str()).collect::<Vec<_>>().join("\n")
+                } else {
+                    // Last resort: current filesystem content
+                    std::fs::read_to_string(&document.path)?
+                }
+            };
             
             let response_data = serde_json::json!({
                 "document": document,
@@ -600,6 +627,48 @@ impl MCPServer {
             data: Some(result),
             error: None,
         })
+    }
+
+    // EP12: Save content and create a new version entry with snapshot and reindex
+    async fn handle_save_note(&self, args: serde_json::Value) -> Result<MCPResponse> {
+        let path_str = args.get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: path"))?;
+        let content = args.get("content")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("Missing required field: content"))?;
+
+        let project_id = args.get("project_id")
+            .and_then(|v| v.as_str())
+            .and_then(|s| Uuid::parse_str(s).ok());
+
+        let path = std::path::PathBuf::from(path_str);
+
+        // Ensure parent directory exists
+        if let Some(parent) = path.parent() { std::fs::create_dir_all(parent).ok(); }
+
+        // Write content to disk
+        std::fs::write(&path, content)?;
+
+        // Index this single file to create a new version (if changed)
+        let corpus = crate::corpus::CorpusManager::new(self.db.clone(), vec![]);
+        if let Err(e) = corpus.index_single_file(&path, project_id.as_ref()).await {
+            // If indexing fails, still report save success but include warning
+            return Ok(MCPResponse {
+                success: false,
+                data: None,
+                error: Some(format!("Saved to disk but indexing failed: {}", e)),
+            });
+        }
+
+        // Fetch latest version metadata to return
+        let latest = self.db.get_latest_document_version(&path).await?;
+        let response = serde_json::json!({
+            "path": path_str,
+            "document": latest,
+        });
+
+        Ok(MCPResponse { success: true, data: Some(response), error: None })
     }
 }
 

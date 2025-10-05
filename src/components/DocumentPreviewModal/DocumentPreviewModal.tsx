@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, FileText, Calendar, Folder, Tag, History } from 'lucide-react';
 import { Document, SearchResult } from '../../types';
 import { marked } from 'marked';
+import EditorInterface from '../EditorInterface/EditorInterface';
 import Button from '../common/Button';
 import styles from './DocumentPreviewModal.module.css';
 
@@ -48,6 +49,7 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   showActions = true,
 }) => {
   const [content, setContent] = useState<string>('');
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,12 +60,10 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const documentContent = content;
 
   useEffect(() => {
-    const fetchContent = async () => {
-      // If we already have content, don't fetch again
-      if (content) {
-        return;
-      }
+    // Reset content when viewing a different version to avoid stale preview
+    setContent('');
 
+    const fetchContent = async () => {
       setIsLoading(true);
       setError(null);
 
@@ -93,7 +93,7 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     };
 
     fetchContent();
-  }, [documentId, searchResult, content]);
+  }, [documentId]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -117,6 +117,10 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     if (onViewHistory && document) {
       onViewHistory(document);
     }
+  };
+
+  const handleToggleEdit = () => {
+    setIsEditing(prev => !prev);
   };
 
   const getVersionBadgeClass = () => {
@@ -148,6 +152,16 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           </div>
 
           <div className={styles.headerActions}>
+            {isMarkdown && (
+              <Button
+                onClick={handleToggleEdit}
+                variant='ghost'
+                size='sm'
+                title={isEditing ? 'Preview' : 'Edit'}
+              >
+                {isEditing ? 'Preview' : 'Edit'}
+              </Button>
+            )}
             {showActions && onViewHistory && document && (
               <Button
                 onClick={handleViewHistory}
@@ -267,10 +281,18 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
             {!error && (
               <>
                 {isMarkdown ? (
-                  <div
-                    className={`markdown-content ${styles.contentMarkdown} ${isLoading ? styles.contentLoading : ''}`}
-                    dangerouslySetInnerHTML={{ __html: renderedHtml }}
-                  />
+                  isEditing ? (
+                    <EditorInterface
+                      initialValue={documentContent}
+                      path={path}
+                      projectId={document?.project_id}
+                    />
+                  ) : (
+                    <div
+                      className={`markdown-content ${styles.contentMarkdown} ${isLoading ? styles.contentLoading : ''}`}
+                      dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                    />
+                  )
                 ) : (
                   <pre
                     className={`${styles.contentText} ${isLoading ? styles.contentLoading : ''}`}

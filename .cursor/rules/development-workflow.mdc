@@ -96,6 +96,27 @@ cargo clippy
 4. **Code is Stable**: All functionality works as expected
 5. **Ready for Commit**: Code is in a stable, working state before committing
 
+### Task-Level Build-Run-Test Loop (MANDATORY)
+For EACH discrete task/change, immediately perform the following before moving on:
+
+```bash
+./build.sh
+./start.sh
+
+# 3) Verify backend is updated and endpoints are available on a second terminal
+sleep 1
+curl -s http://localhost:8080/api/tools | grep save_note || echo "save_note missing"
+
+# 4) Exercise the change (smoke test)
+# Example: trigger an endpoint, or action in UI
+```
+
+Rules:
+- Always restart the backend after modifying Rust code that affects endpoints or tools.
+- Verify critical endpoints with curl before manual UI testing (e.g., `/api/tools`).
+- If a port conflict occurs, free it before starting a new server.
+- Do NOT proceed to the next task until this loop passes.
+
 ### TypeScript Standards
 - **Strict Types**: Always define explicit types for props, state, and function parameters
 - **Interface Definitions**: Use interfaces defined in [src/types.ts](mdc:src/types.ts)
