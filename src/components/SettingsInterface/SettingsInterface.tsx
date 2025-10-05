@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Button from '../common/Button';
 import Dropdown, { DropdownOption } from '../common/Dropdown';
+import Input from '../common/Input';
 import ThemeToggle from '../common/ThemeToggle';
 import { useStatePersistence } from '../../contexts/StatePersistenceContext';
 import styles from './SettingsInterface.module.css';
@@ -374,8 +375,8 @@ const SettingsInterface: React.FC = () => {
 
           <div className={styles.formSection}>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Ollama URL</label>
-              <input
+              <Input
+                label='Ollama URL'
                 type='text'
                 value={settings.ollamaUrl}
                 onChange={e =>
@@ -383,14 +384,13 @@ const SettingsInterface: React.FC = () => {
                     settings: { ...settings, ollamaUrl: e.target.value },
                   })
                 }
-                className={styles.formInput}
                 placeholder='http://localhost:11434'
               />
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Ollama Model</label>
-              <input
+              <Input
+                label='Ollama Model'
                 type='text'
                 value={settings.ollamaModel}
                 onChange={e =>
@@ -398,40 +398,22 @@ const SettingsInterface: React.FC = () => {
                     settings: { ...settings, ollamaModel: e.target.value },
                   })
                 }
-                className={styles.formInput}
                 placeholder='gpt-oss:20b'
               />
             </div>
 
             {!settings.localFirst && (
-              <div>
-                <label className={styles.formLabel}>
-                  API Key (if using remote service)
-                </label>
-                <div className={styles.passwordInputContainer}>
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={apiKey}
-                    onChange={e =>
-                      updateSettingsState({ apiKey: e.target.value })
-                    }
-                    className={styles.formInput}
-                    placeholder='Enter API key'
-                  />
-                  <button
-                    type='button'
-                    onClick={() =>
-                      updateSettingsState({ showApiKey: !showApiKey })
-                    }
-                    className={styles.passwordToggle}
-                  >
-                    {showApiKey ? (
-                      <EyeOff className={styles.passwordToggleIcon} />
-                    ) : (
-                      <Eye className={styles.passwordToggleIcon} />
-                    )}
-                  </button>
-                </div>
+              <div className={styles.formGroup}>
+                <Input
+                  label='API Key (if using remote service)'
+                  type='password'
+                  value={apiKey}
+                  onChange={e =>
+                    updateSettingsState({ apiKey: e.target.value })
+                  }
+                  placeholder='Enter API key'
+                  showPasswordToggle={true}
+                />
               </div>
             )}
           </div>
@@ -512,21 +494,20 @@ const SettingsInterface: React.FC = () => {
           {/* Add New Pattern */}
           <div className={styles.formSection}>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Pattern</label>
-              <input
+              <Input
+                label='Pattern'
                 type='text'
                 value={newExclusionPattern}
                 onChange={e =>
                   updateSettingsState({ newExclusionPattern: e.target.value })
                 }
-                className={styles.formInput}
                 placeholder='e.g., node_modules, *.tmp, .git'
               />
             </div>
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Description (optional)</label>
-              <input
+              <Input
+                label='Description (optional)'
                 type='text'
                 value={newExclusionDescription}
                 onChange={e =>
@@ -534,7 +515,6 @@ const SettingsInterface: React.FC = () => {
                     newExclusionDescription: e.target.value,
                   })
                 }
-                className={styles.formInput}
                 placeholder='e.g., Node.js dependencies'
               />
             </div>
@@ -622,13 +602,13 @@ const SettingsInterface: React.FC = () => {
 
           {(retentionPolicy.policy_type === 'last_n_versions' ||
             retentionPolicy.policy_type === 'last_n_days') && (
-            <div>
-              <label className={styles.formLabel}>
-                {retentionPolicy.policy_type === 'last_n_versions'
-                  ? 'Number of Versions'
-                  : 'Number of Days'}
-              </label>
-              <input
+            <div className={styles.formGroup}>
+              <Input
+                label={
+                  retentionPolicy.policy_type === 'last_n_versions'
+                    ? 'Number of Versions'
+                    : 'Number of Days'
+                }
                 type='number'
                 min='1'
                 value={retentionPolicy.value}
@@ -640,7 +620,6 @@ const SettingsInterface: React.FC = () => {
                     },
                   })
                 }
-                className={styles.formInput}
               />
             </div>
           )}

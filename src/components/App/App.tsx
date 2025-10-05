@@ -87,7 +87,11 @@ function App() {
             <div className={styles.headerContent}>
               <div className={styles.headerInner}>
                 <div className={styles.headerLeft}>
-                  <FileText className={styles.logo} />
+                  <img
+                    src='/src/assets/logo.svg'
+                    alt='Knowledge Base'
+                    className={styles.logo}
+                  />
                   <h1 className={styles.title}>Knowledge Base</h1>
                 </div>
 

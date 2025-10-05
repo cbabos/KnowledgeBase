@@ -11,6 +11,7 @@ import {
 import { MCPTool, QAAnswer, Citation, Project, Document } from '../../types';
 import Button from '../common/Button';
 import Dropdown, { DropdownOption } from '../common/Dropdown';
+import Input from '../common/Input';
 import DocumentPreviewModal from '../DocumentPreviewModal/DocumentPreviewModal';
 import VersionHistoryInterface from '../VersionHistoryInterface/VersionHistoryInterface';
 import CitationPreview from '../CitationPreview/CitationPreview';
@@ -209,14 +210,14 @@ const QnAInterface: React.FC<QnAInterfaceProps> = ({
         </div>
         <div className={styles.questionInputForm}>
           <div className={styles.questionInputField}>
-            <MessageSquare className={styles.questionInputIcon} />
-            <input
+            <Input
               type='text'
               value={question}
               onChange={e => updateQnAState({ question: e.target.value })}
               onKeyPress={e => e.key === 'Enter' && askQuestion()}
               placeholder='Ask a question about your knowledge base...'
-              className={styles.questionInputInput}
+              leftIcon={<MessageSquare />}
+              size='lg'
             />
           </div>
           <Button

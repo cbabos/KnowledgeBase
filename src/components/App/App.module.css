@@ -39,14 +39,27 @@
 }
 
 .header {
-  background-color: white;
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.05) 0%,
+    rgba(37, 99, 235, 0.05) 100%
+  );
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
   border-bottom: 1px solid var(--color-gray-200);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 
 :global(.dark) .header {
-  background-color: var(--color-gray-800);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1) 0%,
+    rgba(37, 99, 235, 0.1) 100%
+  );
   border-bottom-color: var(--color-gray-700);
+  box-shadow: var(--shadow-lg);
 }
 
 .headerContent {
@@ -82,18 +95,39 @@
 .logo {
   height: 2rem;
   width: 2rem;
-  color: var(--color-primary-500);
   margin-right: var(--space-3);
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 
 .title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-900);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-600) 0%,
+    var(--color-primary-500) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: -0.025em;
 }
 
 :global(.dark) .title {
-  color: white;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-400) 0%,
+    var(--color-primary-300) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .nav {
@@ -104,24 +138,55 @@
 .navButton {
   display: flex;
   align-items: center;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   transition: all var(--transition-base);
   border: none;
   background: none;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.navButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500) 0%,
+    var(--color-primary-600) 100%
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  border-radius: var(--radius-lg);
 }
 
 .navButtonActive {
-  background-color: var(--color-primary-100);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-100) 0%,
+    var(--color-primary-200) 100%
+  );
   color: var(--color-primary-700);
+  box-shadow: var(--shadow-primary);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .navButtonActive {
-  background-color: var(--color-primary-900);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-900) 0%,
+    var(--color-primary-800) 100%
+  );
   color: var(--color-primary-300);
+  box-shadow: var(--shadow-primary-lg);
 }
 
 .navButtonInactive {
@@ -130,7 +195,13 @@
 
 .navButtonInactive:hover {
   color: var(--color-gray-700);
-  background-color: var(--color-gray-100);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-100) 0%,
+    var(--color-gray-200) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 :global(.dark) .navButtonInactive {
@@ -139,19 +210,39 @@
 
 :global(.dark) .navButtonInactive:hover {
   color: var(--color-gray-300);
-  background-color: var(--color-gray-700);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-700) 0%,
+    var(--color-gray-600) 100%
+  );
+  box-shadow: var(--shadow-md);
 }
 
 .navIcon {
   height: 1rem;
   width: 1rem;
-  margin-right: var(--space-2);
+  position: relative;
+  z-index: 1;
 }
 
 .main {
   max-width: var(--container-max-width);
   margin: 0 auto;
   padding: var(--space-8) var(--space-4);
+  min-height: calc(100vh - var(--header-height));
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.02) 0%,
+    rgba(37, 99, 235, 0.02) 100%
+  );
+}
+
+:global(.dark) .main {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.05) 0%,
+    rgba(37, 99, 235, 0.05) 100%
+  );
 }
 
 @media (min-width: 640px) {

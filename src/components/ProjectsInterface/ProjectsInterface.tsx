@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Project } from '../../types';
 import Button from '../common/Button';
+import Input from '../common/Input';
 import { useStatePersistence } from '../../contexts/StatePersistenceContext';
 import styles from './ProjectsInterface.module.css';
 
@@ -281,8 +282,8 @@ const ProjectsInterface: React.FC<ProjectsInterfaceProps> = ({
             <form onSubmit={handleCreateProject}>
               <div className={styles.modalBody}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Project Name *</label>
-                  <input
+                  <Input
+                    label='Project Name *'
                     type='text'
                     value={newProject.name}
                     onChange={e =>
@@ -290,7 +291,6 @@ const ProjectsInterface: React.FC<ProjectsInterfaceProps> = ({
                         newProject: { ...newProject, name: e.target.value },
                       })
                     }
-                    className={styles.formInput}
                     placeholder='Enter project name'
                     required
                   />
@@ -352,8 +352,8 @@ const ProjectsInterface: React.FC<ProjectsInterfaceProps> = ({
             <form onSubmit={handleUpdateProject}>
               <div className={styles.modalBody}>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Project Name *</label>
-                  <input
+                  <Input
+                    label='Project Name *'
                     type='text'
                     value={editingProject.name}
                     onChange={e =>
@@ -364,7 +364,6 @@ const ProjectsInterface: React.FC<ProjectsInterfaceProps> = ({
                         },
                       })
                     }
-                    className={styles.formInput}
                     placeholder='Enter project name'
                     required
                   />

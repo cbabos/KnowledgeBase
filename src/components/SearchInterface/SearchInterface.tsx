@@ -17,6 +17,7 @@ import {
 } from '../../types';
 import Button from '../common/Button';
 import Dropdown, { DropdownOption } from '../common/Dropdown';
+import Input from '../common/Input';
 import VersionHistoryInterface from '../VersionHistoryInterface/VersionHistoryInterface';
 import DocumentPreviewModal from '../DocumentPreviewModal/DocumentPreviewModal';
 import CitationPreview from '../CitationPreview/CitationPreview';
@@ -205,14 +206,14 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({
       <div className={styles.searchHeader}>
         <div className={styles.searchForm}>
           <div className={styles.searchField}>
-            <Search className={styles.searchIcon} />
-            <input
+            <Input
               type='text'
               value={query}
               onChange={e => updateSearchState({ query: e.target.value })}
               onKeyPress={e => e.key === 'Enter' && searchNotes()}
               placeholder='Search your knowledge base...'
-              className={styles.searchInput}
+              leftIcon={<Search />}
+              size='lg'
             />
           </div>
           <Button
@@ -306,11 +307,10 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({
               </div>
 
               <div className={styles.filterGroup}>
-                <label className={styles.filterGroupLabel}>Tags</label>
-                <input
+                <Input
+                  label='Tags'
                   type='text'
                   placeholder='Enter tags (comma-separated)'
-                  className={styles.filterInput}
                   onChange={e => {
                     const tags = e.target.value
                       .split(',')
@@ -327,11 +327,10 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({
               </div>
 
               <div className={styles.filterGroup}>
-                <label className={styles.filterGroupLabel}>Folders</label>
-                <input
+                <Input
+                  label='Folders'
                   type='text'
                   placeholder='Enter folder paths (comma-separated)'
-                  className={styles.filterInput}
                   onChange={e => {
                     const folders = e.target.value
                       .split(',')

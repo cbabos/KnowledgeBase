@@ -13,6 +13,7 @@ import {
 import { IndexingResult, Project } from '../../types';
 import Button from '../common/Button';
 import Dropdown, { DropdownOption } from '../common/Dropdown';
+import Input from '../common/Input';
 import { useStatePersistence } from '../../contexts/StatePersistenceContext';
 import styles from './IndexingInterface.module.css';
 
@@ -296,7 +297,7 @@ const IndexingInterface: React.FC<IndexingInterfaceProps> = ({ projects }) => {
           {/* Add Folder */}
           <div className={styles.addFolderContainer}>
             <div className={styles.addFolderInput}>
-              <input
+              <Input
                 type='text'
                 value={newFolder}
                 onChange={e =>
@@ -304,7 +305,6 @@ const IndexingInterface: React.FC<IndexingInterfaceProps> = ({ projects }) => {
                 }
                 onKeyPress={e => e.key === 'Enter' && addFolder()}
                 placeholder='Enter folder path (e.g., /Users/username/notes)'
-                className={styles.formInput}
                 disabled={!selectedProject}
               />
             </div>
