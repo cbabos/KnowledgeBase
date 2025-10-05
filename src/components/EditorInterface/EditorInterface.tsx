@@ -9,8 +9,12 @@ import {
   List,
   Table,
   Save,
+  Wand2,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import Button from '../common/Button';
+import Input from '../common/Input';
 import styles from './EditorInterface.module.css';
 
 interface EditorInterfaceProps {
@@ -74,10 +78,32 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const debounceTimer = useRef<number | null>(null);
+  const [currentPath, setCurrentPath] = useState<string | undefined>(path);
+  const [showNameModal, setShowNameModal] = useState<boolean>(false);
+  const [proposedPath, setProposedPath] = useState<string>('');
+  const [showGenerateModal, setShowGenerateModal] = useState<boolean>(false);
+  const [genPrompt, setGenPrompt] = useState<string>('');
+  const [genLoading, setGenLoading] = useState<boolean>(false);
+  const [showRefineModal, setShowRefineModal] = useState<boolean>(false);
+  const [refineInstruction, setRefineInstruction] = useState<string>(
+    'Improve clarity and style while preserving meaning.'
+  );
+  const [refineLoading, setRefineLoading] = useState<boolean>(false);
+  const [pendingRefined, setPendingRefined] = useState<string | null>(null);
+  const [insertInfo, setInsertInfo] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setContent(initialValue);
   }, [initialValue]);
+
+  useEffect(() => {
+    // Enforce file naming before editing if no path is set
+    if (!currentPath) {
+      setShowNameModal(true);
+    }
+  }, [currentPath]);
 
   const handleInput: React.ChangeEventHandler<HTMLTextAreaElement> = e => {
     setContent(e.target.value);
@@ -175,15 +201,16 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({
   }, [dirty, content]);
 
   async function autosave(isImmediate: boolean = false) {
-    if (!path) return; // require path to save
+    if (!currentPath) return; // require path to save
     if (!dirty && !isImmediate) return;
     try {
       setSaving(true);
+      setSaveError(null);
       const payloadContent = textareaRef.current?.value ?? content;
       const request = {
         tool: 'save_note',
         arguments: {
-          path,
+          path: currentPath,
           content: payloadContent,
           project_id: projectId,
         },
@@ -195,17 +222,149 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({
       });
       const data = await res.json();
       if (!data.success) {
-        // keep dirty so user knows it didn't save
-        console.error('Autosave failed:', data.error);
+        // keep dirty so user knows it didn't save/index
+        const errMsg =
+          typeof data.error === 'string' ? data.error : 'Autosave failed.';
+        setSaveError(errMsg);
+        console.error('Autosave failed:', errMsg);
         return;
       }
       setDirty(false);
       setLastSavedAt(new Date().toLocaleTimeString());
+      // Brief success notice to reflect EP14 indexing completion
+      setSaveNotice('Indexed');
+      window.setTimeout(() => setSaveNotice(null), 2000);
     } catch (err) {
       console.error('Autosave error:', err);
+      setSaveError('Network error during autosave');
     } finally {
       setSaving(false);
     }
+  }
+
+  async function generateFromPrompt() {
+    setGenLoading(true);
+    try {
+      const request = {
+        tool: 'generate_document',
+        arguments: {
+          prompt: genPrompt,
+        },
+      };
+      const res = await fetch('/api/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        console.error('Generate failed:', data.error);
+        return;
+      }
+      const markdown = data.data?.markdown ?? '';
+      setContent(markdown);
+      setDirty(true);
+      setShowGenerateModal(false);
+    } catch (e) {
+      console.error('Generate error:', e);
+    } finally {
+      setGenLoading(false);
+    }
+  }
+
+  async function refineSelection() {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const value = el.value;
+    const hasSelection = end > start;
+    const selection = hasSelection ? value.slice(start, end) : '';
+    const request = {
+      tool: 'refine_content',
+      arguments: {
+        selection:
+          selection ||
+          '(No selection. Treat this as a continuation where the cursor is placed.)',
+        context: value,
+        instruction: refineInstruction,
+      },
+    };
+    setRefineLoading(true);
+    try {
+      const res = await fetch('/api/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        console.error('Refine failed:', data.error);
+        return;
+      }
+      const refined = data.data?.refined ?? '';
+      setPendingRefined(refined);
+      if (!hasSelection) {
+        setInsertInfo(
+          'No selection detected. The refined text will be inserted at the cursor position.'
+        );
+      } else {
+        setInsertInfo(null);
+      }
+      setShowRefineModal(false);
+    } catch (e) {
+      console.error('Refine error:', e);
+    } finally {
+      setRefineLoading(false);
+    }
+  }
+
+  function applyPendingRefined(accept: boolean) {
+    const el = textareaRef.current;
+    if (!el) {
+      setPendingRefined(null);
+      return;
+    }
+    if (accept && pendingRefined) {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const hasSelection = end > start;
+      const value = el.value;
+      let next: string;
+      let insertPos = end;
+      if (hasSelection) {
+        next = value.slice(0, start) + pendingRefined + value.slice(end);
+        insertPos = start + pendingRefined.length;
+      } else {
+        // Insert at cursor
+        next = value.slice(0, start) + pendingRefined + value.slice(start);
+        insertPos = start + pendingRefined.length;
+      }
+      el.value = next;
+      el.selectionStart = insertPos;
+      el.selectionEnd = insertPos;
+      setContent(next);
+      setDirty(true);
+    }
+    setPendingRefined(null);
+    setInsertInfo(null);
+    el?.focus();
+  }
+
+  function onRequestGenerate() {
+    if (!currentPath) {
+      setShowNameModal(true);
+      return;
+    }
+    setShowGenerateModal(true);
+  }
+
+  function onRequestRefine() {
+    if (!currentPath) {
+      setShowNameModal(true);
+      return;
+    }
+    setShowRefineModal(true);
   }
 
   function sanitize(html: string): string {
@@ -285,6 +444,22 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({
           <Save />
         </Button>
         <Button
+          variant='secondary'
+          size='sm'
+          title='Generate from prompt'
+          onClick={onRequestGenerate}
+        >
+          <Wand2 />
+        </Button>
+        <Button
+          variant='secondary'
+          size='sm'
+          title='Refine selection'
+          onClick={onRequestRefine}
+        >
+          <Sparkles />
+        </Button>
+        <Button
           variant='ghost'
           size='sm'
           title='Bold (Ctrl/Cmd+B)'
@@ -316,8 +491,23 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({
           <Table />
         </Button>
       </div>
+      {saveError && (
+        <div className={styles.errorAlert} role='alert'>
+          <span className={styles.errorText}>{saveError}</span>
+        </div>
+      )}
+      {saveNotice && !saveError && (
+        <div className={styles.noticeAlert} role='status'>
+          <span className={styles.noticeText}>{saveNotice}</span>
+        </div>
+      )}
       <div className={styles.split}>
         <div className={styles.editorPane}>
+          {!currentPath && (
+            <div className={styles.banner}>
+              <span>Before editing, please name and save the file.</span>
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             className={styles.textarea}
@@ -336,6 +526,179 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({
           />
         </div>
       </div>
+
+      {showNameModal && (
+        <div className={styles.modal} role='dialog' aria-modal='true'>
+          <div className={styles.backdrop} onClick={() => {}} />
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Name your file</h3>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() => {}}
+                title='Close'
+              >
+                <X />
+              </Button>
+            </div>
+            <div className={styles.formGroup}>
+              <Input
+                placeholder='/absolute/path/to/file.md'
+                value={proposedPath}
+                onChange={e => setProposedPath(e.target.value)}
+              />
+            </div>
+            <div className={styles.modalFooter}>
+              <Button
+                variant='primary'
+                onClick={() => {
+                  if (proposedPath.trim().length === 0) return;
+                  setCurrentPath(proposedPath.trim());
+                  setShowNameModal(false);
+                }}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGenerateModal && (
+        <div className={styles.modal} role='dialog' aria-modal='true'>
+          <div
+            className={styles.backdrop}
+            onClick={() => setShowGenerateModal(false)}
+          />
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Generate document</h3>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() => setShowGenerateModal(false)}
+                title='Close'
+              >
+                <X />
+              </Button>
+            </div>
+            <div className={styles.formGroup}>
+              <Input
+                placeholder='Describe what you need...'
+                value={genPrompt}
+                onChange={e => setGenPrompt(e.target.value)}
+              />
+            </div>
+            <div className={styles.modalFooter}>
+              <Button
+                variant='secondary'
+                onClick={() => setShowGenerateModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant='primary'
+                onClick={generateFromPrompt}
+                loading={genLoading}
+                disabled={!genPrompt.trim()}
+              >
+                Generate
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRefineModal && (
+        <div className={styles.modal} role='dialog' aria-modal='true'>
+          <div
+            className={styles.backdrop}
+            onClick={() => setShowRefineModal(false)}
+          />
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Refine selection</h3>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() => setShowRefineModal(false)}
+                title='Close'
+              >
+                <X />
+              </Button>
+            </div>
+            <div className={styles.formGroup}>
+              <Input
+                placeholder='Instruction (optional)'
+                value={refineInstruction}
+                onChange={e => setRefineInstruction(e.target.value)}
+              />
+            </div>
+            <div className={styles.modalFooter}>
+              <Button
+                variant='secondary'
+                onClick={() => setShowRefineModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant='primary'
+                onClick={refineSelection}
+                loading={refineLoading}
+              >
+                Refine
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingRefined && (
+        <div className={styles.modal} role='dialog' aria-modal='true'>
+          <div
+            className={styles.backdrop}
+            onClick={() => applyPendingRefined(false)}
+          />
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Review refined text</h3>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() => applyPendingRefined(false)}
+                title='Close'
+              >
+                <X />
+              </Button>
+            </div>
+            {insertInfo && <div className={styles.banner}>{insertInfo}</div>}
+            <div className={styles.formGroup}>
+              <textarea
+                className={styles.textarea}
+                value={pendingRefined}
+                onChange={() => {}}
+                readOnly
+                aria-label='Refined preview'
+              />
+            </div>
+            <div className={styles.modalFooter}>
+              <Button
+                variant='secondary'
+                onClick={() => applyPendingRefined(false)}
+              >
+                Reject
+              </Button>
+              <Button
+                variant='primary'
+                onClick={() => applyPendingRefined(true)}
+              >
+                Accept
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
