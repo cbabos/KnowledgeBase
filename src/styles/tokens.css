@@ -125,7 +125,7 @@
   --transition-slow: 300ms ease-in-out;
 
   /* Z-Index Scale */
-  --z-dropdown: 1100;
+  --z-dropdown: 1200;
   --z-sticky: 1020;
   --z-fixed: 1030;
   --z-modal-backdrop: 1040;
