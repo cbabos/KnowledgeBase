@@ -72,15 +72,31 @@
 }
 
 .section {
-  background-color: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-gray-200);
   padding: var(--space-6);
+  transition: all var(--transition-base);
+}
+
+.section:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
+  z-index: 1;
 }
 
 :global(.dark) .section {
-  background-color: var(--color-gray-800);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(30, 41, 59, 0.95) 100%
+  );
   border-color: var(--color-gray-700);
 }
 
@@ -139,7 +155,12 @@
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   color: var(--color-gray-900);
-  background-color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-lg);
   transition:
@@ -155,7 +176,7 @@
 
 :global(.dark) .formInput {
   color: white;
-  background-color: var(--color-gray-700);
+  background: var(--color-gray-800);
   border-color: var(--color-gray-600);
 }
 
@@ -165,7 +186,12 @@
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   color: var(--color-gray-900);
-  background-color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-lg);
   transition:
@@ -182,7 +208,7 @@
 
 :global(.dark) .formSelect {
   color: white;
-  background-color: var(--color-gray-700);
+  background: var(--color-gray-800);
   border-color: var(--color-gray-600);
 }
 

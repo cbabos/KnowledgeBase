@@ -8,15 +8,31 @@
 }
 
 .section {
-  background-color: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-gray-200);
   padding: var(--space-6);
+  transition: all var(--transition-base);
+}
+
+.section:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
+  z-index: 1;
 }
 
 :global(.dark) .section {
-  background-color: var(--color-gray-800);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(30, 41, 59, 0.95) 100%
+  );
   border-color: var(--color-gray-700);
 }
 
@@ -29,18 +45,32 @@
 .sectionIcon {
   height: 1.25rem;
   width: 1.25rem;
-  color: var(--color-gray-400);
+  color: var(--color-primary-500);
   margin-right: var(--space-2);
 }
 
 .sectionTitle {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-gray-900);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-600) 0%,
+    var(--color-primary-500) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 :global(.dark) .sectionTitle {
-  color: white;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-400) 0%,
+    var(--color-primary-300) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .sectionDescription {
@@ -109,19 +139,28 @@
 .formInput {
   padding: var(--space-3);
   border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
-  transition: border-color var(--transition-base);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
 }
 
 .formInput:focus {
   outline: none;
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px var(--color-primary-100);
+  box-shadow:
+    var(--shadow-primary),
+    0 0 0 3px var(--color-primary-100);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .formInput {
-  background-color: var(--color-gray-700);
+  background: var(--color-gray-800);
   border-color: var(--color-gray-600);
   color: white;
 }
@@ -389,14 +428,29 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3);
-  background-color: var(--color-gray-50);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-50) 0%,
+    var(--color-gray-100) 100%
+  );
   border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.patternItem:hover {
+  box-shadow: var(--shadow-base);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .patternItem {
-  background-color: var(--color-gray-700);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-700) 0%,
+    var(--color-gray-600) 100%
+  );
   border-color: var(--color-gray-600);
 }
 

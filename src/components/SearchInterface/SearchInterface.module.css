@@ -8,15 +8,31 @@
 }
 
 .searchHeader {
-  background-color: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-gray-200);
   padding: var(--space-6);
+  transition: all var(--transition-base);
+}
+
+.searchHeader:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
+  z-index: 1;
 }
 
 :global(.dark) .searchHeader {
-  background-color: var(--color-gray-800);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(30, 41, 59, 0.95) 100%
+  );
   border-color: var(--color-gray-700);
 }
 
@@ -50,6 +66,12 @@
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
   transition:
     border-color var(--transition-base),
     box-shadow var(--transition-base);
@@ -63,7 +85,7 @@
 
 :global(.dark) .searchInput {
   color: white;
-  background-color: var(--color-gray-700);
+  background: var(--color-gray-800);
   border-color: var(--color-gray-600);
 }
 
@@ -200,7 +222,12 @@
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   color: var(--color-gray-900);
-  background-color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-lg);
   transition:
@@ -217,7 +244,7 @@
 
 :global(.dark) .projectFilterSelect {
   color: white;
-  background-color: var(--color-gray-700);
+  background: var(--color-gray-800);
   border-color: var(--color-gray-600);
 }
 
@@ -288,7 +315,12 @@
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   color: var(--color-gray-900);
-  background-color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-lg);
   transition:
@@ -304,7 +336,7 @@
 
 :global(.dark) .filterInput {
   color: white;
-  background-color: var(--color-gray-700);
+  background: var(--color-gray-800);
   border-color: var(--color-gray-600);
 }
 
@@ -385,20 +417,34 @@
 
 .resultItemUnselected {
   border-color: var(--color-gray-200);
-  background-color: white;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
 }
 
 .resultItemUnselected:hover {
   border-color: var(--color-gray-300);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .resultItemUnselected {
   border-color: var(--color-gray-700);
-  background-color: var(--color-gray-800);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(30, 41, 59, 0.95) 100%
+  );
 }
 
 :global(.dark) .resultItemUnselected:hover {
   border-color: var(--color-gray-600);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
 }
 
 .citationPreview {

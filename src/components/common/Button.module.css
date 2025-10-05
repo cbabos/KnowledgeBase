@@ -49,30 +49,91 @@
 
 /* Variants */
 .buttonPrimary {
-  background-color: var(--color-primary-500);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500) 0%,
+    var(--color-primary-600) 100%
+  );
   color: white;
   border-color: var(--color-primary-500);
+  box-shadow: var(--shadow-primary);
 }
 
 .buttonPrimary:hover:not(:disabled) {
-  background-color: var(--color-primary-600);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-600) 0%,
+    var(--color-primary-700) 100%
+  );
   border-color: var(--color-primary-600);
+  box-shadow: var(--shadow-primary-lg);
+  transform: translateY(-1px);
 }
 
 .buttonPrimary:active:not(:disabled) {
-  background-color: var(--color-primary-700);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-700) 0%,
+    var(--color-primary-800) 100%
+  );
   border-color: var(--color-primary-700);
+  transform: translateY(0);
+  box-shadow: var(--shadow-primary);
+}
+
+:global(.dark) .buttonPrimary {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-600) 0%,
+    var(--color-primary-700) 100%
+  );
+  color: white;
+  border-color: var(--color-primary-600);
+  box-shadow: var(--shadow-primary);
+}
+
+:global(.dark) .buttonPrimary:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-500) 0%,
+    var(--color-primary-600) 100%
+  );
+  border-color: var(--color-primary-500);
+  box-shadow: var(--shadow-primary-lg);
+  transform: translateY(-1px);
+}
+
+:global(.dark) .buttonPrimary:active:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-700) 0%,
+    var(--color-primary-800) 100%
+  );
+  border-color: var(--color-primary-700);
+  transform: translateY(0);
+  box-shadow: var(--shadow-primary);
 }
 
 .buttonSecondary {
-  background-color: var(--color-gray-100);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-100) 0%,
+    var(--color-gray-200) 100%
+  );
   color: var(--color-gray-700);
   border-color: var(--color-gray-300);
+  box-shadow: var(--shadow-sm);
 }
 
 .buttonSecondary:hover:not(:disabled) {
-  background-color: var(--color-gray-200);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-200) 0%,
+    var(--color-gray-300) 100%
+  );
   border-color: var(--color-gray-400);
+  box-shadow: var(--shadow-base);
+  transform: translateY(-1px);
 }
 
 .buttonSecondary:active:not(:disabled) {
@@ -81,51 +142,99 @@
 }
 
 :global(.dark) .buttonSecondary {
-  background-color: var(--color-gray-700);
-  color: var(--color-gray-300);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-700) 0%,
+    var(--color-gray-800) 100%
+  );
+  color: var(--color-gray-200);
   border-color: var(--color-gray-600);
+  box-shadow: var(--shadow-sm);
 }
 
 :global(.dark) .buttonSecondary:hover:not(:disabled) {
-  background-color: var(--color-gray-600);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-600) 0%,
+    var(--color-gray-700) 100%
+  );
   border-color: var(--color-gray-500);
+  box-shadow: var(--shadow-base);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .buttonSecondary:active:not(:disabled) {
-  background-color: var(--color-gray-500);
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-500) 0%,
+    var(--color-gray-600) 100%
+  );
   border-color: var(--color-gray-400);
+  transform: translateY(0);
 }
 
 .buttonDanger {
-  background-color: var(--color-error-500);
+  background: linear-gradient(
+    135deg,
+    var(--color-error-500) 0%,
+    var(--color-error-600) 100%
+  );
   color: white;
   border-color: var(--color-error-500);
+  box-shadow: var(--shadow-error);
 }
 
 .buttonDanger:hover:not(:disabled) {
-  background-color: var(--color-error-600);
+  background: linear-gradient(
+    135deg,
+    var(--color-error-600) 0%,
+    var(--color-error-700) 100%
+  );
   border-color: var(--color-error-600);
+  box-shadow: var(--shadow-error);
+  transform: translateY(-1px);
 }
 
 .buttonDanger:active:not(:disabled) {
-  background-color: var(--color-error-700);
+  background: linear-gradient(
+    135deg,
+    var(--color-error-700) 0%,
+    var(--color-error-800) 100%
+  );
   border-color: var(--color-error-700);
+  transform: translateY(0);
 }
 
 .buttonWarning {
-  background-color: var(--color-warning-500);
+  background: linear-gradient(
+    135deg,
+    var(--color-warning-500) 0%,
+    var(--color-warning-600) 100%
+  );
   color: white;
   border-color: var(--color-warning-500);
+  box-shadow: var(--shadow-warning);
 }
 
 .buttonWarning:hover:not(:disabled) {
-  background-color: var(--color-warning-600);
+  background: linear-gradient(
+    135deg,
+    var(--color-warning-600) 0%,
+    var(--color-warning-700) 100%
+  );
   border-color: var(--color-warning-600);
+  box-shadow: var(--shadow-warning);
+  transform: translateY(-1px);
 }
 
 .buttonWarning:active:not(:disabled) {
-  background-color: var(--color-warning-700);
+  background: linear-gradient(
+    135deg,
+    var(--color-warning-700) 0%,
+    var(--color-warning-800) 100%
+  );
   border-color: var(--color-warning-700);
+  transform: translateY(0);
 }
 
 .buttonGhost {
@@ -137,11 +246,13 @@
 .buttonGhost:hover:not(:disabled) {
   background-color: var(--color-gray-50);
   border-color: var(--color-gray-400);
+  transform: translateY(-1px);
 }
 
 .buttonGhost:active:not(:disabled) {
   background-color: var(--color-gray-100);
   border-color: var(--color-gray-500);
+  transform: translateY(0);
 }
 
 :global(.dark) .buttonGhost {
@@ -152,11 +263,13 @@
 :global(.dark) .buttonGhost:hover:not(:disabled) {
   background-color: var(--color-gray-800);
   border-color: var(--color-gray-500);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .buttonGhost:active:not(:disabled) {
   background-color: var(--color-gray-700);
   border-color: var(--color-gray-400);
+  transform: translateY(0);
 }
 
 /* Full width */
