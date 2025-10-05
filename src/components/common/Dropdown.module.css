@@ -105,7 +105,6 @@
   box-shadow: var(--shadow-lg);
   z-index: var(--z-dropdown);
   overflow: hidden;
-  isolation: isolate;
 }
 
 :global(.dark) .dropdown {
