@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::path::PathBuf;
 use uuid::Uuid;
-use warp::Filter;
+use warp::{Filter, Rejection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndexRequest {
@@ -133,9 +133,34 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                                 async move {
                                     if let Some(path) = params.get("path") {
                                         // purge docs and remove folder record
-                                        let _ = db.purge_folder_documents(path).await;
-                                        let _ = db.remove_indexed_folder(path).await;
-                                        Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({"success": true})))
+                                        match db.purge_folder_documents(path).await {
+                                            Ok(count) => {
+                                                tracing::info!("Purged {} documents from folder: {}", count, path);
+                                                match db.remove_indexed_folder(path).await {
+                                                    Ok(_) => {
+                                                        tracing::info!("Removed folder from index: {}", path);
+                                                        Ok::<_, Infallible>(warp::reply::json(&serde_json::json!({
+                                                            "success": true,
+                                                            "message": format!("Removed folder and purged {} documents", count)
+                                                        })))
+                                                    }
+                                                    Err(e) => {
+                                                        tracing::error!("Failed to remove folder from index: {}", e);
+                                                        Ok(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": format!("Failed to remove folder from index: {}", e)
+                                                        })))
+                                                    }
+                                                }
+                                            }
+                                            Err(e) => {
+                                                tracing::error!("Failed to purge documents from folder: {}", e);
+                                                Ok(warp::reply::json(&serde_json::json!({
+                                                    "success": false,
+                                                    "error": format!("Failed to purge documents: {}", e)
+                                                })))
+                                            }
+                                        }
                                     } else {
                                         Ok(warp::reply::json(&serde_json::json!({"success": false, "error": "missing path"})))
                                     }
@@ -327,6 +352,122 @@ pub async fn start_server(config: Config, db: Database) -> Result<()> {
                         )
                 )
                 .or(
+                    // Exclusion patterns management endpoints
+                    warp::path("exclusion-patterns")
+                        .and(
+                            // GET /api/exclusion-patterns - List all exclusion patterns
+                            warp::get()
+                                .and_then({
+                                    let db = db.clone();
+                                    move || {
+                                        let db = db.clone();
+                                        async move {
+                                            match db.get_exclusion_patterns().await {
+                                                Ok(patterns) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                    "success": true,
+                                                    "patterns": patterns
+                                                }))),
+                                                Err(e) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                    "success": false,
+                                                    "error": e.to_string()
+                                                }))),
+                                            }
+                                        }
+                                    }
+                                })
+                                .or(
+                                    // POST /api/exclusion-patterns - Add new exclusion pattern
+                                    warp::post()
+                                        .and(warp::body::json())
+                                        .and_then({
+                                            let db = db.clone();
+                                            move |body: serde_json::Value| {
+                                                let db = db.clone();
+                                                async move {
+                                                    let pattern = match body.get("pattern").and_then(|v| v.as_str()) {
+                                                        Some(p) => p,
+                                                        None => return Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": "Pattern is required"
+                                                        }))),
+                                                    };
+                                                    
+                                                    let description = body.get("description").and_then(|v| v.as_str());
+                                                    
+                                                    match db.add_exclusion_pattern(pattern, description).await {
+                                                        Ok(new_pattern) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": true,
+                                                            "pattern": new_pattern
+                                                        }))),
+                                                        Err(e) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": e.to_string()
+                                                        }))),
+                                                    }
+                                                }
+                                            }
+                                        })
+                                )
+                                .or(
+                                    // PUT /api/exclusion-patterns/{id} - Update exclusion pattern
+                                    warp::put()
+                                        .and(warp::path::param::<String>())
+                                        .and(warp::body::json())
+                                        .and_then({
+                                            let db = db.clone();
+                                            move |id: String, body: serde_json::Value| {
+                                                let db = db.clone();
+                                                async move {
+                                                    let pattern = match body.get("pattern").and_then(|v| v.as_str()) {
+                                                        Some(p) => p,
+                                                        None => return Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": "Pattern is required"
+                                                        }))),
+                                                    };
+                                                    
+                                                    let description = body.get("description").and_then(|v| v.as_str());
+                                                    
+                                                    match db.update_exclusion_pattern(&id, pattern, description).await {
+                                                        Ok(updated_pattern) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": true,
+                                                            "pattern": updated_pattern
+                                                        }))),
+                                                        Err(e) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": e.to_string()
+                                                        }))),
+                                                    }
+                                                }
+                                            }
+                                        })
+                                )
+                                .or(
+                                    // DELETE /api/exclusion-patterns/{id} - Remove exclusion pattern
+                                    warp::delete()
+                                        .and(warp::path::param::<String>())
+                                        .and_then({
+                                            let db = db.clone();
+                                            move |id: String| {
+                                                let db = db.clone();
+                                                async move {
+                                                    match db.remove_exclusion_pattern(&id).await {
+                                                        Ok(_) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": true,
+                                                            "message": "Exclusion pattern removed successfully"
+                                                        }))),
+                                                        Err(e) => Ok::<warp::reply::Json, Rejection>(warp::reply::json(&serde_json::json!({
+                                                            "success": false,
+                                                            "error": e.to_string()
+                                                        }))),
+                                                    }
+                                                }
+                                            }
+                                        })
+                                )
+                        )
+                )
+                .or(
                     // Health check
                     warp::path("health")
                         .and(warp::get())
@@ -391,13 +532,26 @@ async fn index_folders(db: Database, folders: Vec<PathBuf>, project_id: Option<U
         errors: Vec::new(),
     };
 
-    let exclusions = vec![
+    // Load exclusion patterns from database
+    let mut exclusions = vec![
         "node_modules".to_string(),
         ".git".to_string(),
         ".DS_Store".to_string(),
         "*.tmp".to_string(),
         "*.log".to_string(),
     ];
+
+    // Add custom exclusion patterns from database
+    match db.get_exclusion_patterns().await {
+        Ok(patterns) => {
+            for pattern in patterns {
+                exclusions.push(pattern.pattern);
+            }
+        }
+        Err(e) => {
+            tracing::warn!("Failed to load exclusion patterns from database: {}", e);
+        }
+    }
 
     let corpus_manager = crate::corpus::CorpusManager::new(db.clone(), exclusions);
 

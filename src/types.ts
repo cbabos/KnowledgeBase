@@ -119,3 +119,11 @@ export interface VersionDiff {
   document_a: Document;
   document_b: Document;
 }
+
+export interface ExclusionPattern {
+  id: string;
+  pattern: string;
+  description?: string;
+  is_glob: boolean;
+  created_at: string;
+}

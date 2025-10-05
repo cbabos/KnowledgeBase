@@ -12,6 +12,9 @@ import {
   Palette,
   Calendar,
   Archive,
+  Filter,
+  Plus,
+  X,
 } from 'lucide-react';
 import Button from '../common/Button';
 import Dropdown, { DropdownOption } from '../common/Dropdown';
@@ -24,7 +27,15 @@ const SettingsInterface: React.FC = () => {
   const [isLoadingPolicy, setIsLoadingPolicy] = useState(false);
 
   // Use persistent state
-  const { settings, showApiKey, apiKey, retentionPolicy } = state.settings;
+  const {
+    settings,
+    showApiKey,
+    apiKey,
+    retentionPolicy,
+    exclusionPatterns,
+    newExclusionPattern,
+    newExclusionDescription,
+  } = state.settings;
 
   useEffect(() => {
     // Load settings from localStorage or API
@@ -38,6 +49,7 @@ const SettingsInterface: React.FC = () => {
       });
     }
     loadRetentionPolicy();
+    loadExclusionPatterns();
   }, []);
 
   const loadRetentionPolicy = async () => {
@@ -176,6 +188,97 @@ const SettingsInterface: React.FC = () => {
         }
       };
       reader.readAsText(file);
+    }
+  };
+
+  const addExclusionPattern = async () => {
+    const pattern = newExclusionPattern.trim();
+    if (pattern && !exclusionPatterns.some(p => p.pattern === pattern)) {
+      const description = newExclusionDescription.trim() || undefined;
+      const success = await saveExclusionPattern(pattern, description);
+      if (success) {
+        updateSettingsState({
+          newExclusionPattern: '',
+          newExclusionDescription: '',
+        });
+      }
+    }
+  };
+
+  const removeExclusionPattern = async (id: string) => {
+    if (
+      window.confirm('Are you sure you want to remove this exclusion pattern?')
+    ) {
+      await deleteExclusionPattern(id);
+    }
+  };
+
+  const loadExclusionPatterns = async () => {
+    try {
+      const response = await fetch('/api/exclusion-patterns');
+      const data = await response.json();
+      if (data.success) {
+        updateSettingsState({ exclusionPatterns: data.patterns || [] });
+      }
+    } catch (error) {
+      console.error('Failed to load exclusion patterns:', error);
+    }
+  };
+
+  const saveExclusionPattern = async (
+    pattern: string,
+    description?: string
+  ) => {
+    try {
+      const response = await fetch('/api/exclusion-patterns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pattern,
+          description,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        await loadExclusionPatterns(); // Reload patterns from server
+        return true;
+      } else {
+        alert(
+          'Failed to save exclusion pattern: ' + (data.error || 'Unknown error')
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to save exclusion pattern:', error);
+      alert('Failed to save exclusion pattern');
+      return false;
+    }
+  };
+
+  const deleteExclusionPattern = async (id: string) => {
+    try {
+      const response = await fetch(`/api/exclusion-patterns/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        await loadExclusionPatterns(); // Reload patterns from server
+        return true;
+      } else {
+        alert(
+          'Failed to delete exclusion pattern: ' +
+            (data.error || 'Unknown error')
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to delete exclusion pattern:', error);
+      alert('Failed to delete exclusion pattern');
+      return false;
     }
   };
 
@@ -385,6 +488,109 @@ const SettingsInterface: React.FC = () => {
               />
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Exclusion Patterns */}
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <Filter className={styles.sectionIcon} />
+          <h2 className={styles.sectionTitle}>Indexing Exclusions</h2>
+        </div>
+
+        <div className={styles.sectionContent}>
+          <div className={styles.settingItem}>
+            <div className={styles.settingContent}>
+              <h3 className={styles.formLabel}>Exclusion Patterns</h3>
+              <p className={styles.settingDescription}>
+                Define patterns to exclude files and folders from indexing. Use
+                glob patterns with * for wildcards.
+              </p>
+            </div>
+          </div>
+
+          {/* Add New Pattern */}
+          <div className={styles.formSection}>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Pattern</label>
+              <input
+                type='text'
+                value={newExclusionPattern}
+                onChange={e =>
+                  updateSettingsState({ newExclusionPattern: e.target.value })
+                }
+                className={styles.formInput}
+                placeholder='e.g., node_modules, *.tmp, .git'
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Description (optional)</label>
+              <input
+                type='text'
+                value={newExclusionDescription}
+                onChange={e =>
+                  updateSettingsState({
+                    newExclusionDescription: e.target.value,
+                  })
+                }
+                className={styles.formInput}
+                placeholder='e.g., Node.js dependencies'
+              />
+            </div>
+
+            <Button
+              onClick={addExclusionPattern}
+              disabled={!newExclusionPattern.trim()}
+              leftIcon={Plus}
+              variant='primary'
+            >
+              Add Pattern
+            </Button>
+          </div>
+
+          {/* Current Patterns */}
+          {exclusionPatterns.length > 0 && (
+            <div className={styles.patternsList}>
+              <h3 className={styles.formLabel}>Active Exclusion Patterns:</h3>
+              {exclusionPatterns.map(pattern => (
+                <div key={pattern.id} className={styles.patternItem}>
+                  <div className={styles.patternInfo}>
+                    <div className={styles.patternText}>
+                      <code className={styles.patternCode}>
+                        {pattern.pattern}
+                      </code>
+                      {pattern.is_glob && (
+                        <span className={styles.patternType}>glob</span>
+                      )}
+                    </div>
+                    {pattern.description && (
+                      <div className={styles.patternDescription}>
+                        {pattern.description}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => removeExclusionPattern(pattern.id)}
+                    className={styles.patternRemoveButton}
+                    title='Remove pattern'
+                  >
+                    <X className={styles.patternRemoveIcon} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Default Patterns Info */}
+          <div className={styles.patternsInfo}>
+            <h4 className={styles.patternsInfoTitle}>Default Exclusions</h4>
+            <p className={styles.patternsInfoText}>
+              The following patterns are automatically excluded:{' '}
+              <code>node_modules</code>, <code>.git</code>,{' '}
+              <code>.DS_Store</code>, <code>*.tmp</code>, <code>*.log</code>
+            </p>
+          </div>
         </div>
       </div>
 

@@ -33,6 +33,15 @@ pub struct IndexEntry {
     pub positions: Vec<u32>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExclusionPattern {
+    pub id: String,
+    pub pattern: String,
+    pub description: Option<String>,
+    pub is_glob: bool,
+    pub created_at: String,
+}
+
 #[derive(Clone)]
 pub struct Database {
     pool: SqlitePool,
@@ -167,6 +176,26 @@ impl Database {
             .await?;
 
         sqlx::query("CREATE INDEX IF NOT EXISTS idx_indexed_folders_project_id ON indexed_folders (project_id)")
+            .execute(&self.pool)
+            .await?;
+
+        // Create exclusion patterns table
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS exclusion_patterns (
+                id TEXT PRIMARY KEY,
+                pattern TEXT NOT NULL UNIQUE,
+                description TEXT,
+                is_glob BOOLEAN NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Create index for exclusion patterns
+        sqlx::query("CREATE INDEX IF NOT EXISTS idx_exclusion_patterns_pattern ON exclusion_patterns (pattern)")
             .execute(&self.pool)
             .await?;
 
@@ -408,6 +437,11 @@ impl Database {
             let id_str: String = row.get("id");
             // Delete index entries
             sqlx::query("DELETE FROM index_entries WHERE document_id = ?")
+                .bind(&id_str)
+                .execute(&self.pool)
+                .await?;
+            // Delete document snapshots
+            sqlx::query("DELETE FROM document_snapshots WHERE document_id = ?")
                 .bind(&id_str)
                 .execute(&self.pool)
                 .await?;
@@ -810,5 +844,87 @@ impl Database {
         } else {
             Ok(1)
         }
+    }
+
+    // Exclusion Patterns Management
+    pub async fn get_exclusion_patterns(&self) -> Result<Vec<ExclusionPattern>> {
+        let rows = sqlx::query("SELECT id, pattern, description, is_glob, created_at FROM exclusion_patterns ORDER BY created_at ASC")
+            .fetch_all(&self.pool)
+            .await?;
+
+        let mut patterns = Vec::new();
+        for row in rows {
+            patterns.push(ExclusionPattern {
+                id: row.get("id"),
+                pattern: row.get("pattern"),
+                description: row.get("description"),
+                is_glob: row.get::<i64, _>("is_glob") != 0,
+                created_at: row.get("created_at"),
+            });
+        }
+
+        Ok(patterns)
+    }
+
+    pub async fn add_exclusion_pattern(&self, pattern: &str, description: Option<&str>) -> Result<ExclusionPattern> {
+        let id = Uuid::new_v4().to_string();
+        let is_glob = pattern.contains('*');
+        let created_at = Utc::now().to_rfc3339();
+
+        sqlx::query(
+            "INSERT INTO exclusion_patterns (id, pattern, description, is_glob, created_at) VALUES (?, ?, ?, ?, ?)"
+        )
+        .bind(&id)
+        .bind(pattern)
+        .bind(description)
+        .bind(is_glob)
+        .bind(&created_at)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(ExclusionPattern {
+            id,
+            pattern: pattern.to_string(),
+            description: description.map(|s| s.to_string()),
+            is_glob,
+            created_at,
+        })
+    }
+
+    pub async fn remove_exclusion_pattern(&self, id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM exclusion_patterns WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_exclusion_pattern(&self, id: &str, pattern: &str, description: Option<&str>) -> Result<ExclusionPattern> {
+        let is_glob = pattern.contains('*');
+
+        sqlx::query(
+            "UPDATE exclusion_patterns SET pattern = ?, description = ?, is_glob = ? WHERE id = ?"
+        )
+        .bind(pattern)
+        .bind(description)
+        .bind(is_glob)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        // Get the updated pattern
+        let row = sqlx::query("SELECT id, pattern, description, is_glob, created_at FROM exclusion_patterns WHERE id = ?")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok(ExclusionPattern {
+            id: row.get("id"),
+            pattern: row.get("pattern"),
+            description: row.get("description"),
+            is_glob: row.get::<i64, _>("is_glob") != 0,
+            created_at: row.get("created_at"),
+        })
     }
 }

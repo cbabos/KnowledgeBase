@@ -53,6 +53,9 @@ interface SettingsState {
   showApiKey: boolean;
   apiKey: string;
   retentionPolicy: any;
+  exclusionPatterns: any[];
+  newExclusionPattern: string;
+  newExclusionDescription: string;
 }
 
 // Combined state interface
@@ -115,6 +118,9 @@ const defaultSettingsState: SettingsState = {
     value: 0,
     description: 'Keep all versions (default)',
   },
+  exclusionPatterns: [],
+  newExclusionPattern: '',
+  newExclusionDescription: '',
 };
 
 const defaultState: AppState = {

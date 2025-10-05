@@ -175,18 +175,30 @@ impl CorpusManager {
 
     fn is_excluded(&self, path: &Path) -> bool {
         let path_str = path.to_string_lossy();
+        let filename = path.file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
         
         for exclusion in &self.exclusions {
             if exclusion.contains('*') {
-                // Simple glob pattern matching
+                // Simple glob pattern matching against filename
                 let pattern = exclusion.replace('*', ".*");
+                if let Ok(regex) = Regex::new(&format!("^{}$", pattern)) {
+                    if regex.is_match(filename) {
+                        return true;
+                    }
+                }
+                // Also try matching against the full path for directory patterns
                 if let Ok(regex) = Regex::new(&format!("^{}$", pattern)) {
                     if regex.is_match(&path_str) {
                         return true;
                     }
                 }
-            } else if path_str.contains(exclusion) {
-                return true;
+            } else {
+                // For non-glob patterns, check both filename and path
+                if filename.contains(exclusion) || path_str.contains(exclusion) {
+                    return true;
+                }
             }
         }
         
